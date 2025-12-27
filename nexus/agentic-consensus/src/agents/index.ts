@@ -9,4 +9,5 @@ export * from './risk-security-agent';
 export * from './treasury-agent';
 export * from './community-agent';
 export * from './product-feasibility-agent';
+export * from './moderator-agent';
 

@@ -9,6 +9,7 @@ export enum AgentType {
   TREASURY = 'treasury',
   COMMUNITY = 'community',
   PRODUCT_FEASIBILITY = 'product_feasibility',
+  MODERATOR = 'moderator',
 }
 
 export interface AgentReasoning {

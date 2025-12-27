@@ -13,6 +13,7 @@ import {
   TreasuryAgent,
   CommunityAgent,
   ProductFeasibilityAgent,
+  ModeratorAgent,
 } from './agents';
 
 /**
@@ -30,12 +31,13 @@ export class AgenticConsensus {
     // 협의 엔진 초기화
     this.deliberationEngine = new DeliberationEngine(config?.deliberation);
     
-    // 에이전트 등록
+    // 에이전트 등록 (5개 에이전트)
     this.deliberationEngine.registerAgents([
       new RiskSecurityAgent(),
       new TreasuryAgent(),
       new CommunityAgent(),
       new ProductFeasibilityAgent(),
+      new ModeratorAgent(),
     ]);
     
     // 모더레이터 초기화

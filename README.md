@@ -2,9 +2,13 @@
 
 > **Where agents propose, people decide, reality updates.**
 
-**BRIDGE 2026** is a **Physical AI governance OS concept** where **reality signals become proposals**, **agents reach consensus**, **humans decide**, and **outcomes are proven on-chain**.
+**BRIDGE 2026 — Physical AI Expansion**
 
-This repository defines the **vision, conceptual architecture, and specifications** for Mossland’s next-generation governance framework.
+**BRIDGE 2026** is a **Physical AI governance OS** where **reality signals become proposals**, **agents reach consensus**, **humans decide**, **execution happens atomically**, and **outcomes are proven on-chain**.
+
+This repository defines the **vision, conceptual architecture, and specifications** for Mossland's next-generation governance framework that bridges the real and virtual worlds.
+
+**Core Vision**: "Mossland becomes a self-evolving ecosystem where reality is covered with data like moss (Reality Oracle), agents define problems on that data (Inference Mining), communities reach consensus (Agentic Consensus), reality/products are updated (Atomic Actuation), and results are proven (Proof of Outcome)."
 
 ---
 
@@ -27,9 +31,9 @@ The goal is to design a governance system where:
 
 ## Core governance loop
 
-**Reality Oracle → Inference Mining → Agentic Consensus → Atomic Actuation → Proof of Outcome**
+**Reality Oracle → Inference Mining → Agentic Consensus → Human Governance → Atomic Actuation → Proof of Outcome**
 
-This loop represents an **operational model**, not a claim of current implementation.
+This loop represents an **operational model** for Mossland's 2026 project, building on Agora (governance) and MAIT (AI decision-making) to create a reality-driven governance system.
 
 ---
 

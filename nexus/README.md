@@ -12,6 +12,7 @@
 - **inference-mining/** - 신호에서 이슈 추출 및 제안 초안 생성 ✅ (기본 구조 완료)
 - **agentic-consensus/** - 멀티 에이전트 협의 및 Decision Packet 생성 ✅ (기본 구조 완료)
 - **human-governance/** - 인간 거버넌스 인터페이스 및 투표 시스템
+- **atomic-actuation/** - 거버넌스 통과 시 온체인/오프체인 실행을 원자적으로 트리거
 - **proof-of-outcome/** - 결과 측정, 평가 및 온체인 증명
 - **shared/** - 모든 레이어에서 공유하는 타입, 유틸리티, 설정 ✅ (타입 정의 완료)
 - **infrastructure/** - 시스템 인프라 컴포넌트 (이벤트 버스, 데이터베이스, 모니터링) ✅ (이벤트 버스, DB 스키마 완료)
@@ -21,9 +22,9 @@
 ## 거버넌스 루프
 
 ```
-Reality Oracle → Inference Mining → Agentic Consensus → Human Governance → Proof of Outcome
-                                                                                ↓
-                                                                         (Feedback Loop)
+Reality Oracle → Inference Mining → Agentic Consensus → Human Governance → Atomic Actuation → Proof of Outcome
+                                                                                                      ↓
+                                                                                              (Feedback Loop)
 ```
 
 각 레이어는 독립적으로 개발 가능하지만, `shared/`와 `infrastructure/`를 통해 통합됩니다.
@@ -66,11 +67,13 @@ Reality Oracle → Inference Mining → Agentic Consensus → Human Governance �
 
 ### 📋 다음 단계
 
-- Agentic Consensus 구현
-- Human Governance 구현
+- Moderator Agent 구현
+- Human Governance 구현 (Agora 연동, Delegation)
+- Atomic Actuation 구현
 - Proof of Outcome 구현
-- 구체적인 수집기 구현 (온체인, 커뮤니티 등)
-- LLM 통합 (제안 초안 생성)
+- 구체적인 수집기 구현 (온체인, 체크인, 공개 API 등)
+- LLM 통합 (Gemini API, 제안 초안 생성)
+- BridgeLog 스마트 컨트랙트
 
 ## 시작하기
 
