@@ -87,11 +87,21 @@ src/
 
 ## 개발 상태
 
-현재 기본 구조가 구현되었습니다:
+현재 기본 구조와 주요 기능이 구현되었습니다:
 - ✅ Next.js 14 프로젝트 설정
 - ✅ Tailwind CSS 설정
 - ✅ Wagmi + RainbowKit 연동
-- ✅ 기본 페이지 구조
-- 🚧 실제 데이터 연동 (예정)
-- 🚧 컴포넌트 구현 (예정)
+- ✅ 주요 페이지 구현:
+  - 홈 페이지 (대시보드)
+  - Reality Feed (신호 목록 및 필터링)
+  - Proposals (제안 목록, 상세, 투표 기능)
+  - Delegation (위임 정책 관리)
+  - Outcomes (결과 리포트)
+- ✅ 주요 컴포넌트:
+  - ProposalCard, ProposalDetail
+  - SignalCard
+  - DelegationPolicyCard
+  - OutcomeCard
+- 🚧 실제 백엔드 API 연동 (예정)
+- 🚧 실제 투표 트랜잭션 (예정)
 
