@@ -110,6 +110,13 @@ Reality Oracle → Inference Mining → Agentic Consensus → Human Governance �
     - 환경 변수 기반 설정
     - 타입 안전한 설정 인터페이스
 
+16. **유틸리티 함수** (`shared/utils/`)
+    - 에러 핸들링 (커스텀 에러 타입)
+    - 로깅 시스템 (Logger)
+    - 데이터 검증 (Validation)
+    - 데이터 포맷팅 (Format)
+    - 기본 테스트 코드
+
 ### 📋 다음 단계
 
 - 실제 LLM API 통합 (Gemini API 실제 호출)

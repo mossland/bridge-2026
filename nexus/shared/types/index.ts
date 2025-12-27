@@ -12,3 +12,6 @@ export * from './outcome';
 
 // DelegationPolicy는 proposal.ts에 포함되어 있음
 
+// Utils
+export * from '../utils';
+
