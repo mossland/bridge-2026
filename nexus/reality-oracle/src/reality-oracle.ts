@@ -28,6 +28,20 @@ export class RealityOracle {
   }
   
   /**
+   * 수집기를 제거합니다.
+   */
+  unregisterCollector(collectorId: string): void {
+    this.collectors.delete(collectorId);
+  }
+  
+  /**
+   * 등록된 수집기 목록을 가져옵니다.
+   */
+  getCollectors(): ICollector[] {
+    return Array.from(this.collectors.values());
+  }
+  
+  /**
    * 모든 수집기를 시작합니다.
    */
   async startCollectors(intervalMs: number = 60000): Promise<void> {

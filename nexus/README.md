@@ -84,6 +84,8 @@ Reality Oracle → Inference Mining → Agentic Consensus → Human Governance �
 10. **구체적인 수집기 구현**
     - 온체인 수집기 (거버넌스 활동 모니터링)
     - 체크인 수집기 (Proof-of-Presence)
+    - City Pulse 수집기 (도시 오픈데이터: 날씨, 대기질, 교통, 유동인구, 이벤트)
+    - GitHub 수집기 (PR, 이슈, 릴리즈, 워크플로우)
 
 11. **토론 프로토콜 구현** (`agentic-consensus/`)
     - Evidence Round: 근거 신호 인용
@@ -102,6 +104,11 @@ Reality Oracle → Inference Mining → Agentic Consensus → Human Governance �
 
 14. **전체 시스템 통합 예제** (`integration/`)
     - 전체 거버넌스 루프 실행 예제
+
+15. **설정 관리** (`shared/config/`)
+    - 전역 설정 관리 시스템
+    - 환경 변수 기반 설정
+    - 타입 안전한 설정 인터페이스
 
 ### 📋 다음 단계
 

@@ -18,8 +18,10 @@ Reality Oracle는 실세계 또는 시스템 레벨 신호를 검증 가능한 �
   - `base-collector.ts`: 기본 수집기 클래스
   - `onchain/`: 온체인 거버넌스 활동 수집기 ✅
   - `community/`: 커뮤니티 체크인 수집기 ✅
-  - `public-data/`: 공개 데이터셋 어댑터 (예정)
-  - `telemetry/`: 제품 원격 측정 (예정)
+  - `public-data/`: 공개 데이터셋 어댑터 ✅
+    - `city-pulse-collector.ts`: 도시 오픈데이터 수집기 (날씨, 대기질, 교통, 유동인구, 이벤트)
+  - `telemetry/`: 제품 원격 측정 ✅
+    - `github-collector.ts`: GitHub 개발 신호 수집기 (PR, 이슈, 릴리즈, 워크플로우)
 - `normalizers/`: 신호 정규화 엔진 ✅
 - `attestation/`: 증명 및 감사 레이어 ✅
 - `reality-oracle.ts`: 메인 서비스 ✅
@@ -50,7 +52,8 @@ await realityOracle.startCollectors(60000); // 1분마다 수집
 - ✅ 기본 수집기 프레임워크
 - ✅ 온체인 수집기 (거버넌스 활동 모니터링)
 - ✅ 체크인 수집기 (Proof-of-Presence)
+- ✅ City Pulse 수집기 (도시 오픈데이터: 날씨, 대기질, 교통, 유동인구, 이벤트)
+- ✅ GitHub 수집기 (PR, 이슈, 릴리즈, 워크플로우)
 - ✅ 신호 정규화 및 증명 레이어
-- 🚧 공개 데이터셋 어댑터 (예정)
-- 🚧 제품 원격 측정 (예정)
+- 🚧 실제 API 연동 (향후 개선 예정)
 

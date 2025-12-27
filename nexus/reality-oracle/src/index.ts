@@ -6,6 +6,10 @@
 
 export * from './reality-oracle';
 export * from './collectors/base-collector';
+export * from './collectors/onchain';
+export * from './collectors/community';
+export * from './collectors/public-data';
+export * from './collectors/telemetry';
 export * from './normalizers/signal-normalizer';
 export * from './attestation/signature-service';
 export * from './attestation/hash-chain';

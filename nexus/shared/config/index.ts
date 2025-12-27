@@ -1,0 +1,6 @@
+/**
+ * Configuration
+ */
+
+export * from './config';
+
