@@ -1,0 +1,26 @@
+{
+  "name": "@oracle/agentic-consensus",
+  "version": "0.1.0",
+  "private": true,
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "lint": "eslint src/",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "@oracle/core": "workspace:*",
+    "@anthropic-ai/sdk": "^0.32.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.3.0"
+  }
+}

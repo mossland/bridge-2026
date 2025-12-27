@@ -1,0 +1,140 @@
+import { TrustScore, OutcomeProof, generateId, now } from "@oracle/core";
+
+export interface TrustManagerConfig {
+  initialScore?: number;
+  successWeight?: number;
+  failureWeight?: number;
+  decayRate?: number; // How much old decisions matter less
+}
+
+export class TrustManager {
+  private scores: Map<string, TrustScore> = new Map();
+  private history: Map<string, OutcomeProof[]> = new Map();
+  private config: TrustManagerConfig;
+
+  constructor(config: TrustManagerConfig = {}) {
+    this.config = {
+      initialScore: config.initialScore ?? 50,
+      successWeight: config.successWeight ?? 5,
+      failureWeight: config.failureWeight ?? 10,
+      decayRate: config.decayRate ?? 0.95,
+    };
+  }
+
+  // Record an outcome and update trust scores
+  recordOutcome(
+    entityId: string,
+    entityType: TrustScore["entityType"],
+    proof: OutcomeProof
+  ): TrustScore {
+    // Get or create score
+    let score = this.scores.get(entityId);
+    if (!score) {
+      score = {
+        entityId,
+        entityType,
+        score: this.config.initialScore!,
+        totalDecisions: 0,
+        successfulDecisions: 0,
+        lastUpdated: now(),
+      };
+    }
+
+    // Update history
+    const entityHistory = this.history.get(entityId) || [];
+    entityHistory.push(proof);
+    this.history.set(entityId, entityHistory);
+
+    // Update score
+    score.totalDecisions++;
+    if (proof.overallSuccess) {
+      score.successfulDecisions++;
+      score.score = Math.min(
+        100,
+        score.score + this.config.successWeight! * (proof.successRate / 100)
+      );
+    } else {
+      score.score = Math.max(
+        0,
+        score.score - this.config.failureWeight! * (1 - proof.successRate / 100)
+      );
+    }
+
+    score.lastUpdated = now();
+    this.scores.set(entityId, score);
+
+    return score;
+  }
+
+  // Get current trust score
+  getScore(entityId: string): TrustScore | undefined {
+    return this.scores.get(entityId);
+  }
+
+  // Get all scores by type
+  getScoresByType(entityType: TrustScore["entityType"]): TrustScore[] {
+    return Array.from(this.scores.values()).filter(
+      (s) => s.entityType === entityType
+    );
+  }
+
+  // Get top performers
+  getTopPerformers(
+    entityType: TrustScore["entityType"],
+    limit: number = 10
+  ): TrustScore[] {
+    return this.getScoresByType(entityType)
+      .sort((a, b) => b.score - a.score)
+      .slice(0, limit);
+  }
+
+  // Calculate weighted reputation considering recency
+  calculateWeightedReputation(entityId: string): number {
+    const history = this.history.get(entityId) || [];
+    if (history.length === 0) {
+      return this.config.initialScore!;
+    }
+
+    let weightedSum = 0;
+    let totalWeight = 0;
+
+    // Sort by date, most recent first
+    const sorted = [...history].sort(
+      (a, b) => b.recordedAt.getTime() - a.recordedAt.getTime()
+    );
+
+    for (let i = 0; i < sorted.length; i++) {
+      const proof = sorted[i];
+      const weight = Math.pow(this.config.decayRate!, i);
+      weightedSum += proof.successRate * weight;
+      totalWeight += weight;
+    }
+
+    return totalWeight > 0 ? weightedSum / totalWeight : this.config.initialScore!;
+  }
+
+  // Get historical performance
+  getHistory(entityId: string): OutcomeProof[] {
+    return this.history.get(entityId) || [];
+  }
+
+  // Reset score (for testing or special cases)
+  resetScore(entityId: string): void {
+    this.scores.delete(entityId);
+    this.history.delete(entityId);
+  }
+
+  // Export all data for analysis
+  exportData(): {
+    scores: TrustScore[];
+    history: { entityId: string; proofs: OutcomeProof[] }[];
+  } {
+    return {
+      scores: Array.from(this.scores.values()),
+      history: Array.from(this.history.entries()).map(([entityId, proofs]) => ({
+        entityId,
+        proofs,
+      })),
+    };
+  }
+}
