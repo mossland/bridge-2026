@@ -8,12 +8,12 @@
 
 이 폴더는 BRIDGE 2026의 모든 구현 레이어를 포함합니다:
 
-- **reality-oracle/** - 실세계 신호를 검증 가능한 거버넌스 입력으로 변환 ✅ (기본 프레임워크 완료)
+- **reality-oracle/** - 실세계 신호를 검증 가능한 거버넌스 입력으로 변환 ✅ (기본 프레임워크 + 온체인/체크인 수집기 완료)
 - **inference-mining/** - 신호에서 이슈 추출 및 제안 초안 생성 ✅ (기본 구조 완료)
-- **agentic-consensus/** - 멀티 에이전트 협의 및 Decision Packet 생성 ✅ (기본 구조 완료)
-- **human-governance/** - 인간 거버넌스 인터페이스 및 투표 시스템
-- **atomic-actuation/** - 거버넌스 통과 시 온체인/오프체인 실행을 원자적으로 트리거
-- **proof-of-outcome/** - 결과 측정, 평가 및 온체인 증명
+- **agentic-consensus/** - 멀티 에이전트 협의 및 Decision Packet 생성 ✅ (5개 에이전트 완료)
+- **human-governance/** - 인간 거버넌스 인터페이스 및 투표 시스템 ✅ (기본 구조 + Delegation 완료)
+- **atomic-actuation/** - 거버넌스 통과 시 온체인/오프체인 실행을 원자적으로 트리거 ✅ (기본 구조 완료)
+- **proof-of-outcome/** - 결과 측정, 평가 및 온체인 증명 ✅ (기본 구조 완료)
 - **shared/** - 모든 레이어에서 공유하는 타입, 유틸리티, 설정 ✅ (타입 정의 완료)
 - **infrastructure/** - 시스템 인프라 컴포넌트 (이벤트 버스, 데이터베이스, 모니터링) ✅ (이벤트 버스, DB 스키마 완료)
 - **scripts/** - 유틸리티 스크립트
@@ -60,20 +60,41 @@ Reality Oracle → Inference Mining → Agentic Consensus → Human Governance �
    - 마이그레이션 파일
 
 6. **Agentic Consensus 기본 구조** (`agentic-consensus/`)
-   - 4개 전문 에이전트 (Risk, Treasury, Community, Product)
+   - 5개 전문 에이전트 (Risk, Treasury, Community, Product, Moderator)
    - 멀티 라운드 협의 엔진
    - 모더레이터 및 Decision Packet 생성
    - 합의 점수 계산
 
+7. **Human Governance 기본 구조** (`human-governance/`)
+   - 거버넌스 서비스 (Decision Packet → Proposal)
+   - Agora 연동
+   - 정책 기반 위임 시스템 (Delegation)
+   - 투표 관리 및 결과 계산
+
+8. **Atomic Actuation 기본 구조** (`atomic-actuation/`)
+   - 온체인 실행 (트레저리, 파라미터 변경)
+   - 오프체인 실행 (GitHub, 캠페인, 공지)
+   - 원자적 실행 보장
+
+9. **Proof of Outcome 기본 구조** (`proof-of-outcome/`)
+   - KPI 추적 시스템
+   - 결과 평가 엔진
+   - 신뢰도 및 평판 시스템
+
+10. **구체적인 수집기 구현**
+    - 온체인 수집기 (거버넌스 활동 모니터링)
+    - 체크인 수집기 (Proof-of-Presence)
+
 ### 📋 다음 단계
 
-- Moderator Agent 구현
-- Human Governance 구현 (Agora 연동, Delegation)
-- Atomic Actuation 구현
-- Proof of Outcome 구현
-- 구체적인 수집기 구현 (온체인, 체크인, 공개 API 등)
+- 토론 프로토콜 구현 (Evidence/Proposal/Critique/Synthesis Round)
 - LLM 통합 (Gemini API, 제안 초안 생성)
-- BridgeLog 스마트 컨트랙트
+- BridgeLog 스마트 컨트랙트 구현
+- 프론트엔드 UI 구현 (Reality Feed, Decision Packet 뷰, Delegation Console)
+- 공개 데이터셋 어댑터 (City Pulse Oracle)
+- GitHub 신호 오라클
+- 실제 블록체인 RPC 연동
+- 실제 Agora API 연동
 
 ## 시작하기
 

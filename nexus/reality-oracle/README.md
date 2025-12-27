@@ -15,11 +15,42 @@ Reality Oracle는 실세계 또는 시스템 레벨 신호를 검증 가능한 �
 ## 구조
 
 - `collectors/`: 신호 수집기
-- `normalizers/`: 신호 정규화 엔진
-- `attestation/`: 증명 및 감사 레이어
-- `adapters/`: 외부 데이터 소스 어댑터
+  - `base-collector.ts`: 기본 수집기 클래스
+  - `onchain/`: 온체인 거버넌스 활동 수집기 ✅
+  - `community/`: 커뮤니티 체크인 수집기 ✅
+  - `public-data/`: 공개 데이터셋 어댑터 (예정)
+  - `telemetry/`: 제품 원격 측정 (예정)
+- `normalizers/`: 신호 정규화 엔진 ✅
+- `attestation/`: 증명 및 감사 레이어 ✅
+- `reality-oracle.ts`: 메인 서비스 ✅
+
+## 사용 예제
+
+```typescript
+import { realityOracle, OnChainCollector, CheckInCollector } from '@bridge-2026/reality-oracle';
+
+// 온체인 수집기 등록
+const onchainCollector = new OnChainCollector({
+  rpcUrl: 'https://eth-mainnet.g.alchemy.com/v2/YOUR_KEY',
+  contractAddress: '0x...',
+});
+realityOracle.registerCollector(onchainCollector);
+
+// 체크인 수집기 등록
+const checkinCollector = new CheckInCollector();
+realityOracle.registerCollector(checkinCollector);
+
+// 수집기 시작
+await realityOracle.startCollectors(60000); // 1분마다 수집
+```
 
 ## 개발 상태
 
-현재 설계 단계입니다. 구현 계획은 `docs/implementation/implementation-plan.md`를 참조하세요.
+현재 기본 구조가 구현되었습니다:
+- ✅ 기본 수집기 프레임워크
+- ✅ 온체인 수집기 (거버넌스 활동 모니터링)
+- ✅ 체크인 수집기 (Proof-of-Presence)
+- ✅ 신호 정규화 및 증명 레이어
+- 🚧 공개 데이터셋 어댑터 (예정)
+- 🚧 제품 원격 측정 (예정)
 

@@ -109,3 +109,40 @@ export interface ProposalResult {
   calculatedAt: number;
 }
 
+/**
+ * 위임 정책 (Delegation Policy)
+ */
+export interface DelegationPolicy {
+  /** 지갑 주소 */
+  wallet: string;
+  /** 에이전트 ID */
+  agent_id: string;
+  /** 범위 제한 */
+  scope: {
+    /** 허용 카테고리 */
+    categories?: string[];
+    /** 허용 태그 */
+    tags?: string[];
+    /** 제외 카테고리 */
+    exclude_categories?: string[];
+    /** 제외 태그 */
+    exclude_tags?: string[];
+  };
+  /** 월별 최대 예산 */
+  max_budget_per_month?: number;
+  /** 제안당 최대 예산 */
+  max_budget_per_proposal?: number;
+  /** 긴급안건 제외 여부 */
+  no_vote_on_emergency: boolean;
+  /** 대기 시간 (시간) */
+  cooldown_window_hours: number;
+  /** 거부권 활성화 여부 */
+  veto_enabled: boolean;
+  /** 거부권 알림 여부 */
+  veto_notification?: boolean;
+  /** 사람 검토 필요 예산 임계값 */
+  require_human_review_above?: number;
+  /** 일일 최대 투표 수 */
+  max_votes_per_day?: number;
+}
+

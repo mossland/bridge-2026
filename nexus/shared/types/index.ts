@@ -10,3 +10,5 @@ export * from './decision-packet';
 export * from './proposal';
 export * from './outcome';
 
+// DelegationPolicy는 proposal.ts에 포함되어 있음
+
