@@ -16,6 +16,9 @@ export interface BridgeConfig {
     networkId: number;
     /** 컨트랙트 주소 */
     contracts: {
+      /** Moss Coin (ERC-20) 주소 */
+      mossCoin: string;
+      /** BridgeLog 컨트랙트 주소 */
       bridgeLog?: string;
     };
   };
@@ -83,6 +86,7 @@ const defaultConfig: BridgeConfig = {
     rpcUrl: process.env.RPC_URL || 'http://localhost:8545',
     networkId: parseInt(process.env.NETWORK_ID || '1', 10),
     contracts: {
+      mossCoin: process.env.MOSS_COIN_ADDRESS || '0x8bbfe65e31b348cd823c62e02ad8c19a84d',
       bridgeLog: process.env.BRIDGE_LOG_CONTRACT_ADDRESS,
     },
   },
