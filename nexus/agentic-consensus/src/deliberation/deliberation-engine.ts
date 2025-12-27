@@ -6,6 +6,7 @@
 
 import type { Issue, AgentReasoning, AgentType } from '../../../shared/types';
 import type { IAgent } from '../agents/base-agent';
+import { DeliberationProtocol } from './deliberation-protocol';
 
 export interface DeliberationConfig {
   /** 최대 라운드 수 */
@@ -44,6 +45,7 @@ export interface DeliberationResult {
 export class DeliberationEngine {
   private agents: Map<AgentType, IAgent> = new Map();
   private config: Required<DeliberationConfig>;
+  private protocol: DeliberationProtocol;
   
   constructor(config: DeliberationConfig = {}) {
     this.config = {
@@ -51,6 +53,7 @@ export class DeliberationEngine {
       consensusThreshold: config.consensusThreshold || 0.7,
       roundDelay: config.roundDelay || 1000,
     };
+    this.protocol = new DeliberationProtocol();
   }
   
   /**
@@ -68,7 +71,7 @@ export class DeliberationEngine {
   }
   
   /**
-   * 이슈에 대해 협의를 시작합니다.
+   * 이슈에 대해 협의를 시작합니다 (구조화된 프로토콜 사용).
    */
   async deliberate(
     issue: Issue,
@@ -77,61 +80,106 @@ export class DeliberationEngine {
     const rounds: DeliberationRound[] = [];
     const reasonings: Map<AgentType, AgentReasoning> = new Map();
     
-    // 초기 분석
-    const initialReasonings = await this.initialAnalysis(issue, context);
-    reasonings.set(initialReasonings[0].agentType, initialReasonings[0]);
-    initialReasonings.forEach(r => reasonings.set(r.agentType, r));
+    // Moderator 에이전트 찾기
+    const moderatorAgent = Array.from(this.agents.values()).find(
+      a => a.type === 'moderator'
+    );
+    
+    if (!moderatorAgent) {
+      throw new Error('Moderator agent not found');
+    }
+    
+    // 1. Evidence Round: 근거 신호 인용
+    await this.delay(this.config.roundDelay);
+    const evidenceMap = await this.protocol.evidenceRound(issue, this.agents, context);
+    
+    // 2. Proposal Round: 실행안 제시
+    await this.delay(this.config.roundDelay);
+    const proposals = await this.protocol.proposalRound(issue, this.agents, evidenceMap, context);
+    
+    // Proposal Round 결과를 AgentReasoning으로 변환
+    for (const [agentType, proposal] of proposals.entries()) {
+      const agent = this.agents.get(agentType);
+      if (agent) {
+        const reasoning = await agent.analyze(issue, {
+          ...context,
+          proposal: proposal.proposal,
+          evidence: evidenceMap.get(agentType),
+        });
+        reasonings.set(agentType, reasoning);
+      }
+    }
     
     rounds.push({
-      round: 0,
+      round: 1,
       reasonings: new Map(reasonings),
       timestamp: Date.now(),
     });
     
-    // 협의 라운드
-    for (let round = 1; round <= this.config.maxRounds; round++) {
-      await this.delay(this.config.roundDelay);
+    // 3. Critique Round: 상호 비판
+    await this.delay(this.config.roundDelay);
+    const critiques = await this.protocol.critiqueRound(issue, this.agents, proposals);
+    
+    // 비판을 반영하여 추론 업데이트
+    for (const critique of critiques) {
+      const targetAgent = this.agents.get(critique.targetAgent);
+      const targetReasoning = reasonings.get(critique.targetAgent);
+      const criticReasoning = reasonings.get(critique.criticAgent);
       
-      const updatedReasonings = await this.deliberationRound(
-        issue,
-        reasonings,
-        round,
-        context
-      );
-      
-      // 추론 업데이트
-      updatedReasonings.forEach((reasoning, agentType) => {
-        reasonings.set(agentType, reasoning);
-      });
-      
-      rounds.push({
-        round,
-        reasonings: new Map(reasonings),
-        timestamp: Date.now(),
-      });
-      
-      // 합의 확인
-      const consensusScore = this.calculateConsensusScore(reasonings);
-      if (consensusScore >= this.config.consensusThreshold) {
-        return {
-          finalReasonings: reasonings,
-          consensusReached: true,
-          consensusScore,
-          rounds,
-          totalRounds: round,
-        };
+      if (targetAgent && targetReasoning && criticReasoning) {
+        // 비판을 반영하여 추론 업데이트
+        const updatedReasoning = await targetAgent.respond(issue, criticReasoning, targetReasoning);
+        
+        // 비판 내용을 분석에 추가
+        updatedReasoning.analysis = `${updatedReasoning.analysis}\n\n비판 반영: ${critique.critique.risks.join('; ')}`;
+        updatedReasoning.confidence = Math.max(0.1, updatedReasoning.confidence - critique.severity * 0.2);
+        
+        reasonings.set(critique.targetAgent, updatedReasoning);
       }
     }
     
-    // 최종 합의 점수 계산
-    const finalConsensusScore = this.calculateConsensusScore(reasonings);
+    rounds.push({
+      round: 2,
+      reasonings: new Map(reasonings),
+      timestamp: Date.now(),
+    });
+    
+    // 4. Synthesis Round: Moderator가 최종 종합
+    await this.delay(this.config.roundDelay);
+    const synthesis = await this.protocol.synthesisRound(
+      issue,
+      moderatorAgent,
+      proposals,
+      critiques,
+      evidenceMap
+    );
+    
+    // Moderator의 최종 추론 생성
+    const moderatorReasoning: AgentReasoning = {
+      agentType: 'moderator',
+      analysis: `최종 종합:\n${synthesis.recommendation}\n\n위험: ${synthesis.risks.map(r => r.title).join(', ')}`,
+      recommendation: synthesis.recommendation,
+      confidence: synthesis.confidence,
+      considerations: synthesis.alternatives.map(a => a.title),
+    };
+    
+    reasonings.set('moderator', moderatorReasoning);
+    
+    rounds.push({
+      round: 3,
+      reasonings: new Map(reasonings),
+      timestamp: Date.now(),
+    });
+    
+    // 합의 점수 계산
+    const consensusScore = this.calculateConsensusScore(reasonings);
     
     return {
       finalReasonings: reasonings,
-      consensusReached: finalConsensusScore >= this.config.consensusThreshold,
-      consensusScore: finalConsensusScore,
+      consensusReached: consensusScore >= this.config.consensusThreshold,
+      consensusScore,
       rounds,
-      totalRounds: this.config.maxRounds,
+      totalRounds: 3, // 프로토콜 라운드 수
     };
   }
   

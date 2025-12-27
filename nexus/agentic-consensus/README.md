@@ -51,6 +51,7 @@ console.log(decisionPacket.overallConfidence);
 현재 기본 구조가 구현되었습니다:
 - ✅ 5개 전문 에이전트 구현 (Risk, Treasury, Community, Product, Moderator)
 - ✅ 협의 엔진 (멀티 라운드 협의)
+- ✅ 토론 프로토콜 (Evidence/Proposal/Critique/Synthesis Round)
 - ✅ 모더레이터 및 Decision Packet 생성
-- 🚧 토론 프로토콜 (Evidence/Proposal/Critique/Synthesis Round) - 구현 예정
-- 🚧 LLM 통합 (Gemini API, 향후 개선 예정)
+- ✅ LLM 클라이언트 기본 구조 (Gemini API)
+- 🚧 실제 LLM API 통합 (향후 개선 예정)

@@ -11,6 +11,7 @@ import uuid
 from .anomaly_detection.statistical_detector import StatisticalDetector, AnomalyResult
 from .trend_analysis.time_series import TimeSeriesAnalyzer, TrendResult
 from .issue_grouping.clustering import IssueClusterer, ClusteringResult
+from .proposal_drafting.draft_generator import ProposalDraftGenerator, proposal_draft_generator
 
 
 class InferenceMining:
@@ -20,6 +21,7 @@ class InferenceMining:
         self.anomaly_detector = StatisticalDetector(threshold=3.0)
         self.trend_analyzer = TimeSeriesAnalyzer(min_data_points=3)
         self.issue_clusterer = IssueClusterer(similarity_threshold=0.7)
+        self.draft_generator = proposal_draft_generator
         self.detected_issues: List[Dict[str, Any]] = []
     
     def detect_anomaly(self, signal_data: List[Dict[str, Any]], metric_key: str) -> Optional[AnomalyResult]:
@@ -148,6 +150,29 @@ class InferenceMining:
             ClusteringResult: 클러스터링 결과
         """
         return self.issue_clusterer.cluster(issues, method="simple")
+    
+    def generate_proposal_draft(
+        self,
+        issue: Dict[str, Any],
+        context: Optional[Dict[str, Any]] = None
+    ) -> Dict[str, Any]:
+        """
+        이슈로부터 제안 초안을 생성합니다.
+        
+        Args:
+            issue: 이슈 딕셔너리
+            context: 추가 컨텍스트
+        
+        Returns:
+            제안 초안 딕셔너리
+        """
+        evidence_signals = issue.get('evidence', {}).get('signals', [])
+        draft = self.draft_generator.generate_draft(issue, evidence_signals, context)
+        
+        # 이슈에 초안 추가
+        issue['auto_generated_proposal_draft'] = draft
+        
+        return draft
     
     def get_detected_issues(self) -> List[Dict[str, Any]]:
         """감지된 이슈들을 반환합니다."""

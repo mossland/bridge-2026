@@ -85,16 +85,34 @@ Reality Oracle → Inference Mining → Agentic Consensus → Human Governance �
     - 온체인 수집기 (거버넌스 활동 모니터링)
     - 체크인 수집기 (Proof-of-Presence)
 
+11. **토론 프로토콜 구현** (`agentic-consensus/`)
+    - Evidence Round: 근거 신호 인용
+    - Proposal Round: 실행안 제시
+    - Critique Round: 상호 비판
+    - Synthesis Round: Moderator 최종 종합
+
+12. **LLM 통합 준비** (`agentic-consensus/`, `inference-mining/`)
+    - Gemini API 클라이언트 기본 구조
+    - 제안 초안 생성기
+
+13. **BridgeLog 스마트 컨트랙트** (`human-governance/contracts/`)
+    - 일일 신호 머클루트 앵커링
+    - Decision Packet CID 앵커링
+    - Outcome Proof CID 앵커링
+
+14. **전체 시스템 통합 예제** (`integration/`)
+    - 전체 거버넌스 루프 실행 예제
+
 ### 📋 다음 단계
 
-- 토론 프로토콜 구현 (Evidence/Proposal/Critique/Synthesis Round)
-- LLM 통합 (Gemini API, 제안 초안 생성)
-- BridgeLog 스마트 컨트랙트 구현
+- 실제 LLM API 통합 (Gemini API 실제 호출)
 - 프론트엔드 UI 구현 (Reality Feed, Decision Packet 뷰, Delegation Console)
 - 공개 데이터셋 어댑터 (City Pulse Oracle)
 - GitHub 신호 오라클
 - 실제 블록체인 RPC 연동
 - 실제 Agora API 연동
+- BridgeLog 컨트랙트 배포 및 연동
+- 통합 테스트 및 E2E 테스트
 
 ## 시작하기
 

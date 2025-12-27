@@ -5,5 +5,6 @@
  */
 
 export * from './deliberation-engine';
+export * from './deliberation-protocol';
 export * from './conversation-manager';
 

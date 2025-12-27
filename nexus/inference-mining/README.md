@@ -21,7 +21,8 @@ Inference Mining은 원시 신호에서 이슈를 추출하고 거버넌스 관�
   - `time-series.py`: 시계열 분석 및 변화점 감지
 - `issue-grouping/`: 이슈 클러스터링 및 우선순위화
   - `clustering.py`: 유사도 기반 이슈 클러스터링
-- `proposal-drafting/`: 제안 초안 생성 (예정)
+- `proposal-drafting/`: 제안 초안 생성
+  - `draft-generator.py`: 템플릿/LLM 기반 제안 초안 생성
 
 ## 사용 예제
 
@@ -48,4 +49,5 @@ clustering_result = inference_mining.group_issues(issues)
 - ✅ 이상 탐지 (Z-score, IQR)
 - ✅ 트렌드 분석 (선형 회귀)
 - ✅ 이슈 클러스터링
-- 🚧 제안 초안 생성 (LLM 통합 예정)
+- ✅ 제안 초안 생성기 (템플릿 기반, LLM 통합 준비 완료)
+- 🚧 실제 LLM API 통합 (향후 개선 예정)
