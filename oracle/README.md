@@ -166,6 +166,28 @@ oracle/
 - 체크인 오라클 참여 지갑 1,000+
 - 제안 작성/읽기 시간 30% 감소
 
+## 스크린샷
+
+- 아래 화면들은 2026 H1 MVP 기준 UI 프로토타입이며, 모든 수치·이벤트·KPI는 목업(Mock) 데이터입니다.
+1. Dashboard — Governance at a Glance
+<img width="1111" height="968" alt="1" src="https://github.com/user-attachments/assets/47a80621-bd27-4190-99af-c1ea26a98308" />
+
+2. Reality Feed — Signal → Issue Entry Point
+<img width="1111" height="968" alt="2" src="https://github.com/user-attachments/assets/1d2abbb7-cfad-4cba-acc4-9cc3fce8ad09" />
+
+3. Issues — AI-Detected Governance Problems
+<img width="1111" height="968" alt="3" src="https://github.com/user-attachments/assets/045686bc-3f73-4683-a167-b02ae899834c" />
+
+4. Proposals — AI Assisted Governance
+<img width="1111" height="968" alt="4" src="https://github.com/user-attachments/assets/f009b10e-ee33-4c17-b325-4e2f03a1f1ee" />
+
+5. Delegation — Policy-Based Trust
+<img width="1111" height="968" alt="5" src="https://github.com/user-attachments/assets/b6e182e2-f558-4d48-8a9c-fd4838623f0c" />
+
+6. Outcomes — Proof of Outcome
+<img width="1111" height="968" alt="6" src="https://github.com/user-attachments/assets/8f99d790-a64f-442b-af72-17271d7551bb" />
+
+
 ## 라이선스
 
 Business Source License (BUSL 1.1)
