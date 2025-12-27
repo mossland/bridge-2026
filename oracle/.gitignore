@@ -6,6 +6,10 @@ dist/
 build/
 *.tsbuildinfo
 
+# Next.js
+.next/
+out/
+
 # Environment
 .env
 .env.local

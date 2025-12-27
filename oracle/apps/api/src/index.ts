@@ -1,4 +1,4 @@
-import express from "express";
+import express, { Express } from "express";
 import cors from "cors";
 import helmet from "helmet";
 
@@ -45,7 +45,7 @@ const outcomeTracker = new OutcomeTrackerImpl();
 const trustManager = new TrustManager();
 
 // Create Express app
-const app = express();
+const app: Express = express();
 app.use(helmet());
 app.use(cors());
 app.use(express.json());

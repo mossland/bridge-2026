@@ -1,193 +1,171 @@
-# ORACLE
+# BRIDGE 2026 — Physical AI Expansion
 
-> **Physical AI Governance OS** - Where reality signals become proposals, agents deliberate, humans decide, and outcomes are proven on-chain.
+> **"Where agents propose, people decide, reality updates."**
 
-ORACLE is the implementation of [BRIDGE 2026](../README.md), Mossland's next-generation governance framework.
+BRIDGE 2026은 **모스랜드(Mossland)** 의 차세대 거버넌스 프레임워크입니다. 현실 신호가 자동으로 의제화되고, AI 에이전트들이 토론/합의안을 만들며, MOC 홀더가 승인/위임으로 실행하는 **Reality Ops** 시스템입니다.
 
-## Overview
+## 핵심 비전
 
-Traditional DAOs: **Humans propose → Humans discuss → Humans vote**
+**기존 DAO**: 사람이 제안 → 사람 토론 → 투표
 
-ORACLE: **Reality signals → AI deliberation → Human decision → Outcome proof**
+**BRIDGE 2026**: 현실 신호 → AI 의제화 → 에이전트 토론 → 사람 승인/위임 → 실행 → 결과증명
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────┐
-│                         ORACLE Governance Loop                          │
+│                    BRIDGE 2026 Governance Loop                          │
 ├─────────────────────────────────────────────────────────────────────────┤
 │                                                                         │
-│  ┌──────────────┐    ┌──────────────┐    ┌──────────────┐              │
-│  │   Reality    │───▶│  Inference   │───▶│   Agentic    │              │
-│  │   Oracle     │    │   Mining     │    │  Consensus   │              │
-│  │  (Layer 1)   │    │  (Layer 2)   │    │  (Layer 3)   │              │
-│  └──────────────┘    └──────────────┘    └──────────────┘              │
-│         │                                       │                       │
-│         │            ┌──────────────┐           │                       │
-│         │            │    Human     │◀──────────┘                       │
-│         │            │  Governance  │                                   │
-│         │            │  (Layer 4)   │                                   │
-│         │            └──────────────┘                                   │
-│         │                   │                                           │
-│         │            ┌──────────────┐                                   │
-│         └────────────│   Proof of   │◀──────────┘                       │
-│                      │   Outcome    │                                   │
-│                      │  (Layer 5)   │                                   │
-│                      └──────────────┘                                   │
+│   Reality         Inference        Agentic          Human               │
+│   Oracle    ───▶  Mining     ───▶  Consensus  ───▶  Governance          │
+│   (신호수집)       (이슈발굴)        (에이전트토론)    (MOC 홀더투표)       │
+│      │                                                   │              │
+│      │                                                   ▼              │
+│      │                                            Atomic Actuation      │
+│      │                                            (실행)                │
+│      │                                                   │              │
+│      └───────────────────  Proof of Outcome  ◀───────────┘              │
+│                            (결과증명/평판)                               │
 │                                                                         │
 └─────────────────────────────────────────────────────────────────────────┘
 ```
 
-## Architecture
+## 모스코인 (MOC)
 
-| Layer | Package | Description |
-|-------|---------|-------------|
-| 1 | `@oracle/reality-oracle` | Signal collection from on-chain events, APIs, telemetry |
-| 2 | `@oracle/inference-mining` | Issue detection (anomaly, threshold, trend analysis) |
-| 3 | `@oracle/agentic-consensus` | AI agent deliberation (Risk, Treasury, Community, Product) |
-| 4 | `@oracle/human-governance` | Voting system with policy-based delegation |
-| 5 | `@oracle/proof-of-outcome` | Outcome tracking, KPI measurement, trust scores |
-| - | `@oracle/contracts` | Solidity smart contracts (EVM) |
-| - | `@oracle/api` | REST API server |
+| 속성 | 값 |
+|------|------|
+| 네트워크 | Ethereum Mainnet |
+| 표준 | ERC-20 |
+| 컨트랙트 | `0x8bbfe65e31b348cd823c62e02ad8c19a84dd0dab` |
+
+MOC 홀더의 3가지 역할:
+1. **Direct Voter** - 직접 투표/토론 참여
+2. **Delegator** - 정책 기반으로 에이전트에게 위임
+3. **Oracle Contributor** - 현실 신호 제공 (체크인/리포트)
 
 ## Quick Start
 
-### Prerequisites
-
-- Node.js >= 18
-- pnpm >= 9.0
-
-### Installation
-
 ```bash
-# Install dependencies
+# 의존성 설치
 pnpm install
 
-# Build all packages
+# 전체 빌드
 pnpm build
 
-# Start API server (development)
+# 웹 개발 서버
+pnpm --filter @oracle/web dev
+
+# API 서버
 pnpm --filter @oracle/api dev
 ```
 
-### Smart Contracts
+## 2026 H1 MVP 범위
 
-```bash
-# Compile contracts
-pnpm --filter @oracle/contracts build
+### 포함
 
-# Run tests
-pnpm --filter @oracle/contracts test
+| 레이어 | 기능 |
+|--------|------|
+| Reality Oracle v0 | 온체인 이벤트, Agora 활동, Proof-of-Presence 체크인 |
+| Inference Mining v0 | 규칙 기반 트리거 + LLM 이슈 요약, 제안 초안 생성 |
+| Agentic Consensus v0 | 5 에이전트 토론, Decision Packet 생성 |
+| Human Governance | MOC 토큰 가중치 투표, AI Assisted Proposal |
+| Delegation v0 | 정책 기반 위임 (카테고리/상한/거부권) |
+| Proof of Outcome v0 | KPI 측정, 에이전트 평판 업데이트 |
 
-# Deploy to local network
-pnpm --filter @oracle/contracts deploy:local
-```
+### 제외 (2027+)
 
-## Project Structure
+- 에이전트의 트레저리 직접 집행
+- 완전 자동화 DAO
+- 빌딩 BMS/로봇 제어
+
+## 프로젝트 구조
 
 ```
 oracle/
 ├── packages/
-│   ├── core/                 # Shared types and utilities
-│   ├── reality-oracle/       # Layer 1: Signal adapters
-│   ├── inference-mining/     # Layer 2: Issue detectors
-│   ├── agentic-consensus/    # Layer 3: AI agents + Moderator
-│   ├── human-governance/     # Layer 4: Voting + Delegation
-│   ├── proof-of-outcome/     # Layer 5: Outcome tracking
-│   └── contracts/            # Solidity smart contracts
+│   ├── core/                 # 공유 타입 및 유틸리티
+│   ├── reality-oracle/       # L0: 신호 수집 어댑터
+│   ├── inference-mining/     # L1: 이슈 탐지기
+│   ├── agentic-consensus/    # L2: AI 에이전트 + Moderator
+│   ├── human-governance/     # L3: 투표 + 위임
+│   ├── proof-of-outcome/     # L4: 결과 추적
+│   └── contracts/            # Solidity 컨트랙트
 ├── apps/
+│   ├── web/                  # Next.js 웹 프론트엔드
 │   └── api/                  # Express REST API
-├── package.json              # Root workspace config
-├── pnpm-workspace.yaml       # pnpm workspace definition
-└── turbo.json                # Turborepo build config
 ```
 
-## API Reference
+## 웹 UI 구성
 
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| `/health` | GET | Health check |
-| `/api/signals` | GET | List recent signals |
-| `/api/signals/collect` | POST | Trigger signal collection |
-| `/api/issues/detect` | POST | Run issue detection |
-| `/api/deliberate` | POST | AI agent deliberation |
-| `/api/proposals` | GET/POST | List/create proposals |
-| `/api/proposals/:id/vote` | POST | Cast vote |
-| `/api/proposals/:id/tally` | POST | Tally votes |
-| `/api/outcomes` | POST | Record execution outcome |
-| `/api/outcomes/:id/proof` | GET | Generate outcome proof |
-| `/api/trust/:entityId` | GET | Get trust score |
-| `/api/stats` | GET | System statistics |
+| 페이지 | 설명 |
+|--------|------|
+| Reality Feed | 실시간 신호 스트림, 이상징후 하이라이트 |
+| Issues | 탐지된 이슈, 에이전트 토론 로그, Decision Packet |
+| Proposals | AI Assisted Proposal 목록, 투표 |
+| Delegation | 위임 설정, 정책 관리, 투표 리포트 |
+| Outcomes | 실행 결과, KPI 변화, 증명 |
 
-## Key Concepts
+## 5-레이어 아키텍처
 
-### Signal Flow
+### L0. Reality Oracle (Signal → Verified Data)
 
-1. **Adapters** collect raw signals from various sources (blockchain, APIs, telemetry)
-2. **Registry** normalizes and stores signals with attestation
-3. **Detectors** analyze signals for anomalies, thresholds, and trends
-4. **Issues** are generated with evidence and suggested actions
+현실 세계 신호를 검증 가능한 데이터로 변환:
+- 온체인 이벤트 (MOC 전송, 거버넌스 활동)
+- Agora 텔레메트리 (참여율, 제안 패턴)
+- Proof-of-Presence (QR/NFC 체크인)
+- 공개 API (도시 데이터, 환경 신호)
 
-### Agent Deliberation
+### L1. Inference Mining (Data → Issues)
 
-Four specialized AI agents analyze each issue:
-- **RiskAgent** - Security and risk assessment
-- **TreasuryAgent** - Financial implications
-- **CommunityAgent** - Stakeholder impact
-- **ProductAgent** - Technical feasibility
+신호에서 이슈를 발굴:
+- 이상 탐지 (참여율 급락, 이상 투표 패턴)
+- 임계값 알림 (예산 소진, 에러율)
+- 추세 분석 (장기 패턴 변화)
+- 자동 제안 초안 생성
 
-A **Moderator** synthesizes opinions into a **Decision Packet** containing:
-- Recommendation with rationale
-- Alternatives with pros/cons
-- Risks with mitigation strategies
-- Measurable KPIs
+### L2. Agentic Consensus (Issues → Decision Packet)
 
-### Governance
+5개 에이전트가 구조화된 토론:
 
-- Token-weighted voting with configurable quorum and threshold
-- Policy-based delegation (conditional, not blanket)
-- On-chain proposal and vote recording
+| 에이전트 | 관점 |
+|----------|------|
+| Risk & Security | 보안/악성/거버넌스 공격 |
+| Treasury | 예산/재무 영향 |
+| Community | 커뮤니티 반응/공정성 |
+| Product | 구현 가능성/개발 난이도 |
+| Moderator | 토론 정리 + Decision Packet 작성 |
 
-### Outcome Proof
+토론 프로토콜:
+1. **Evidence Round**: 근거 신호 인용
+2. **Proposal Round**: 실행안 제시 (비용/KPI)
+3. **Critique Round**: 상호 비판
+4. **Synthesis Round**: 최종 합의안
 
-- Execution records with action status
-- KPI measurements against targets
-- Cryptographic proof generation
-- Trust score updates based on outcomes
+### L3. Human Governance (Decision → Vote)
 
-## Design Principles
+- MOC 토큰 가중치 투표
+- Policy-based Delegation (정책 기반 위임)
+- 위임 조건: 카테고리 제한, 예산 상한, 긴급안건 제외, 거부권
 
-- **Human Sovereignty**: AI assists, humans decide
-- **Auditability**: Every step is inspectable
-- **Gradual Automation**: Delegation before autonomy
-- **Reality Grounding**: Governance from measurable signals
-- **Reversibility**: Rollback and dissent are first-class
+### L4. Proof of Outcome (Execute → Verify)
 
-## Tech Stack
+- KPI 측정 (참여율, 토론량, 실행 완료)
+- 결과 증명 생성
+- 에이전트/위임자 평판 업데이트
 
-- **Runtime**: Node.js / TypeScript
+## 기술 스택
+
+- **Frontend**: Next.js 14, TailwindCSS, wagmi, viem
+- **Backend**: Node.js, Express, TypeScript
+- **Blockchain**: Ethereum, ERC-20 (MOC)
+- **AI**: Claude API (하이브리드)
 - **Monorepo**: pnpm + Turborepo
-- **Blockchain**: Ethereum/EVM (Solidity, viem)
-- **AI**: Claude API (hybrid with rule-based fallback)
-- **API**: Express.js
-- **Validation**: Zod
 
-## Environment Variables
+## 성공 기준 (2026 H1)
 
-```bash
-# AI Integration (optional - falls back to rule-based)
-ANTHROPIC_API_KEY=sk-ant-...
+- AI Assisted Proposal 10개 생성 / 3개 이상 투표 진행
+- 체크인 오라클 참여 지갑 1,000+
+- 제안 작성/읽기 시간 30% 감소
 
-# Blockchain (for contract deployment)
-SEPOLIA_RPC_URL=https://...
-PRIVATE_KEY=0x...
-
-# API Server
-PORT=3000
-```
-
-## License
+## 라이선스
 
 Business Source License (BUSL 1.1)
-
-- Source available for research and non-commercial use
-- Commercial governance/protocol services restricted
-- See [LICENSE](../LICENSE) for full terms
