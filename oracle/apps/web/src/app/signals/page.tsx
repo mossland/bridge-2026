@@ -22,6 +22,8 @@ import {
   Github,
   Twitter,
   FileText,
+  Search,
+  X,
 } from "lucide-react";
 import { cn, getSeverityColor, timeAgo } from "@/lib/utils";
 import { api } from "@/lib/api";
@@ -301,6 +303,8 @@ export default function SignalsPage() {
   const queryClient = useQueryClient();
   const [filter, setFilter] = useState<string>("all");
   const [sourceFilter, setSourceFilter] = useState<string>("all");
+  const [categoryFilter, setCategoryFilter] = useState<string>("all");
+  const [searchQuery, setSearchQuery] = useState<string>("");
 
   const { data, isLoading } = useQuery({
     queryKey: ["signals"],
@@ -317,10 +321,18 @@ export default function SignalsPage() {
 
   const signals = data?.signals ?? [];
 
+  // Extract unique categories
+  const categories = Array.from(new Set(signals.map((s: any) => s.category).filter(Boolean))) as string[];
+
   const filteredSignals = signals.filter((s: any) => {
     const severityMatch = filter === "all" || s.severity === filter;
     const sourceMatch = sourceFilter === "all" || s.source === sourceFilter;
-    return severityMatch && sourceMatch;
+    const categoryMatch = categoryFilter === "all" || s.category === categoryFilter;
+    const searchMatch = searchQuery === "" ||
+      s.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      s.category?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      s.id?.toLowerCase().includes(searchQuery.toLowerCase());
+    return severityMatch && sourceMatch && categoryMatch && searchMatch;
   });
 
   const severityCounts = {
@@ -383,6 +395,26 @@ export default function SignalsPage() {
         ))}
       </div>
 
+      {/* Search Bar */}
+      <div className="relative">
+        <Search className="w-5 h-5 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+        <input
+          type="text"
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          placeholder={t("common.search") + "..."}
+          className="w-full pl-10 pr-10 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-moss-500 focus:border-moss-500"
+        />
+        {searchQuery && (
+          <button
+            onClick={() => setSearchQuery("")}
+            className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        )}
+      </div>
+
       {/* Source Filter */}
       <div className="flex flex-wrap gap-2">
         <button
@@ -417,6 +449,44 @@ export default function SignalsPage() {
           );
         })}
       </div>
+
+      {/* Category Filter */}
+      {categories.length > 0 && (
+        <div className="flex flex-wrap gap-2">
+          <span className="text-sm text-gray-500 flex items-center mr-2">
+            <Filter className="w-4 h-4 mr-1" />
+            {t("signals.category")}:
+          </span>
+          <button
+            onClick={() => setCategoryFilter("all")}
+            className={cn(
+              "badge cursor-pointer transition-all text-xs",
+              categoryFilter === "all"
+                ? "bg-blue-600 text-white"
+                : "bg-blue-50 text-blue-600 hover:bg-blue-100"
+            )}
+          >
+            {t("common.all")}
+          </button>
+          {categories.slice(0, 10).map((category) => (
+            <button
+              key={category}
+              onClick={() => setCategoryFilter(categoryFilter === category ? "all" : category)}
+              className={cn(
+                "badge cursor-pointer transition-all text-xs",
+                categoryFilter === category
+                  ? "bg-blue-600 text-white"
+                  : "bg-blue-50 text-blue-600 hover:bg-blue-100"
+              )}
+            >
+              {category.replace(/_/g, " ")}
+            </button>
+          ))}
+          {categories.length > 10 && (
+            <span className="text-xs text-gray-400">+{categories.length - 10} more</span>
+          )}
+        </div>
+      )}
 
       {/* Signals List */}
       <div className="card">
