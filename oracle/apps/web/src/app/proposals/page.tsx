@@ -1,56 +1,12 @@
 "use client";
 
 import { useState } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAccount } from "wagmi";
-import { Vote, Clock, CheckCircle, XCircle, Bot, ChevronDown, ChevronUp } from "lucide-react";
+import { Vote, Clock, CheckCircle, XCircle, Bot, ChevronDown, ChevronUp, Loader2 } from "lucide-react";
 import { cn, getStatusColor, timeAgo, formatNumber } from "@/lib/utils";
 import { useVotingPower } from "@/hooks/useMOC";
-
-// Mock data
-const mockProposals = [
-  {
-    id: "1",
-    title: "참여 인센티브 재설계안",
-    summary: "커뮤니티 참여율 하락에 대응하여 투표 보상을 증가시키고, 새로운 게이미피케이션 요소를 도입합니다.",
-    status: "active",
-    aiAssisted: true,
-    proposer: "0x1234...5678",
-    votingEndsAt: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000),
-    quorum: 1000000,
-    threshold: 50,
-    forVotes: 750000,
-    againstVotes: 150000,
-    abstainVotes: 50000,
-  },
-  {
-    id: "2",
-    title: "보안 감사 예산 승인",
-    summary: "Q1 스마트 컨트랙트 보안 감사를 위한 50,000 MOC 예산을 승인합니다.",
-    status: "active",
-    aiAssisted: true,
-    proposer: "0x2345...6789",
-    votingEndsAt: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000),
-    quorum: 1000000,
-    threshold: 50,
-    forVotes: 420000,
-    againstVotes: 80000,
-    abstainVotes: 20000,
-  },
-  {
-    id: "3",
-    title: "가스비 최적화 프로젝트",
-    summary: "거버넌스 컨트랙트 가스비를 20% 절감하기 위한 개발 프로젝트를 승인합니다.",
-    status: "passed",
-    aiAssisted: false,
-    proposer: "0x3456...7890",
-    votingEndsAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000),
-    quorum: 1000000,
-    threshold: 50,
-    forVotes: 890000,
-    againstVotes: 110000,
-    abstainVotes: 30000,
-  },
-];
+import { api } from "@/lib/api";
 
 function VotingBar({ forVotes, againstVotes, abstainVotes }: { forVotes: number; againstVotes: number; abstainVotes: number }) {
   const total = forVotes + againstVotes + abstainVotes;
@@ -73,7 +29,7 @@ function VotingBar({ forVotes, againstVotes, abstainVotes }: { forVotes: number;
   );
 }
 
-function VoteModal({ proposal, onClose }: { proposal: typeof mockProposals[0]; onClose: () => void }) {
+function VoteModal({ proposal, onClose }: { proposal: any; onClose: () => void }) {
   const { address } = useAccount();
   const { votingPower, formatted } = useVotingPower();
   const [selectedChoice, setSelectedChoice] = useState<string | null>(null);
@@ -143,15 +99,20 @@ function VoteModal({ proposal, onClose }: { proposal: typeof mockProposals[0]; o
 }
 
 export default function ProposalsPage() {
-  const { isConnected } = useAccount();
-  const [proposals] = useState(mockProposals);
+  const { isConnected, address } = useAccount();
+  const queryClient = useQueryClient();
   const [filter, setFilter] = useState<string>("all");
-  const [votingProposal, setVotingProposal] = useState<typeof mockProposals[0] | null>(null);
+  const [votingProposal, setVotingProposal] = useState<any>(null);
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
-  const filteredProposals = filter === "all"
-    ? proposals
-    : proposals.filter(p => p.status === filter);
+  const { data, isLoading } = useQuery({
+    queryKey: ["proposals", filter],
+    queryFn: () => api.getProposals(filter === "all" ? undefined : filter),
+    refetchInterval: 30000,
+  });
+
+  const proposals = data?.proposals ?? [];
+  const filteredProposals = proposals;
 
   return (
     <div className="space-y-6">
@@ -177,95 +138,111 @@ export default function ProposalsPage() {
 
       {/* Proposals List */}
       <div className="space-y-4">
-        {filteredProposals.map((proposal) => {
-          const total = proposal.forVotes + proposal.againstVotes + proposal.abstainVotes;
-          const quorumPercent = (total / proposal.quorum) * 100;
-          const isExpanded = expandedId === proposal.id;
+        {isLoading ? (
+          <div className="card flex items-center justify-center py-12">
+            <Loader2 className="w-8 h-8 animate-spin text-moss-600" />
+          </div>
+        ) : filteredProposals.length === 0 ? (
+          <div className="card text-center py-12 text-gray-500">
+            <Vote className="w-12 h-12 mx-auto mb-3 text-gray-300" />
+            <p>제안이 없습니다</p>
+          </div>
+        ) : (
+          filteredProposals.map((proposal: any) => {
+            const forVotes = Number(proposal.forVotes || 0);
+            const againstVotes = Number(proposal.againstVotes || 0);
+            const abstainVotes = Number(proposal.abstainVotes || 0);
+            const total = forVotes + againstVotes + abstainVotes;
+            const quorum = Number(proposal.quorum || 1000000);
+            const quorumPercent = (total / quorum) * 100;
+            const isExpanded = expandedId === proposal.id;
+            const votingEndsAt = new Date(proposal.votingEndsAt);
 
-          return (
-            <div key={proposal.id} className="card">
-              <div className="flex items-start justify-between">
-                <div className="flex-1">
-                  <div className="flex items-center space-x-2 mb-2">
-                    <span className={cn("badge", getStatusColor(proposal.status))}>
-                      {proposal.status === "active" ? "진행 중" :
-                       proposal.status === "passed" ? "통과" : "거부"}
-                    </span>
-                    {proposal.aiAssisted && (
-                      <span className="badge bg-purple-50 text-purple-600">
-                        <Bot className="w-3 h-3 mr-1 inline" />
-                        AI Assisted
+            return (
+              <div key={proposal.id} className="card">
+                <div className="flex items-start justify-between">
+                  <div className="flex-1">
+                    <div className="flex items-center space-x-2 mb-2">
+                      <span className={cn("badge", getStatusColor(proposal.status))}>
+                        {proposal.status === "active" ? "진행 중" :
+                         proposal.status === "passed" ? "통과" : "거부"}
                       </span>
+                      {proposal.aiAssisted && (
+                        <span className="badge bg-purple-50 text-purple-600">
+                          <Bot className="w-3 h-3 mr-1 inline" />
+                          AI Assisted
+                        </span>
+                      )}
+                    </div>
+                    <h3 className="text-lg font-semibold text-gray-900">{proposal.title}</h3>
+                    <p className="mt-1 text-sm text-gray-500">{proposal.summary || proposal.description}</p>
+
+                    <div className="mt-4">
+                      <VotingBar
+                        forVotes={forVotes}
+                        againstVotes={againstVotes}
+                        abstainVotes={abstainVotes}
+                      />
+                    </div>
+
+                    <div className="mt-3 flex items-center space-x-4 text-sm text-gray-500">
+                      <span className="flex items-center">
+                        <Clock className="w-4 h-4 mr-1" />
+                        {proposal.status === "active"
+                          ? `${Math.max(0, Math.ceil((votingEndsAt.getTime() - Date.now()) / (24 * 60 * 60 * 1000)))}일 남음`
+                          : timeAgo(votingEndsAt)}
+                      </span>
+                      <span>총 {formatNumber(total)} MOC 투표</span>
+                      <span>정족수 {quorumPercent.toFixed(0)}%</span>
+                    </div>
+                  </div>
+
+                  <div className="flex flex-col items-end space-y-2 ml-4">
+                    {proposal.status === "active" && isConnected && (
+                      <button
+                        onClick={() => setVotingProposal(proposal)}
+                        className="btn-primary"
+                      >
+                        투표하기
+                      </button>
                     )}
-                  </div>
-                  <h3 className="text-lg font-semibold text-gray-900">{proposal.title}</h3>
-                  <p className="mt-1 text-sm text-gray-500">{proposal.summary}</p>
-
-                  <div className="mt-4">
-                    <VotingBar
-                      forVotes={proposal.forVotes}
-                      againstVotes={proposal.againstVotes}
-                      abstainVotes={proposal.abstainVotes}
-                    />
-                  </div>
-
-                  <div className="mt-3 flex items-center space-x-4 text-sm text-gray-500">
-                    <span className="flex items-center">
-                      <Clock className="w-4 h-4 mr-1" />
-                      {proposal.status === "active"
-                        ? `${Math.ceil((proposal.votingEndsAt.getTime() - Date.now()) / (24 * 60 * 60 * 1000))}일 남음`
-                        : timeAgo(proposal.votingEndsAt)}
-                    </span>
-                    <span>총 {formatNumber(total)} MOC 투표</span>
-                    <span>정족수 {quorumPercent.toFixed(0)}%</span>
-                  </div>
-                </div>
-
-                <div className="flex flex-col items-end space-y-2 ml-4">
-                  {proposal.status === "active" && isConnected && (
                     <button
-                      onClick={() => setVotingProposal(proposal)}
-                      className="btn-primary"
+                      onClick={() => setExpandedId(isExpanded ? null : proposal.id)}
+                      className="text-sm text-gray-500 flex items-center"
                     >
-                      투표하기
+                      {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                      상세 보기
                     </button>
-                  )}
-                  <button
-                    onClick={() => setExpandedId(isExpanded ? null : proposal.id)}
-                    className="text-sm text-gray-500 flex items-center"
-                  >
-                    {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-                    상세 보기
-                  </button>
+                  </div>
                 </div>
-              </div>
 
-              {isExpanded && (
-                <div className="mt-4 pt-4 border-t border-gray-100">
-                  <div className="grid grid-cols-3 gap-4 text-center">
-                    <div className="p-3 bg-green-50 rounded-lg">
-                      <p className="text-2xl font-bold text-green-600">{formatNumber(proposal.forVotes)}</p>
-                      <p className="text-sm text-green-700">찬성</p>
+                {isExpanded && (
+                  <div className="mt-4 pt-4 border-t border-gray-100">
+                    <div className="grid grid-cols-3 gap-4 text-center">
+                      <div className="p-3 bg-green-50 rounded-lg">
+                        <p className="text-2xl font-bold text-green-600">{formatNumber(forVotes)}</p>
+                        <p className="text-sm text-green-700">찬성</p>
+                      </div>
+                      <div className="p-3 bg-red-50 rounded-lg">
+                        <p className="text-2xl font-bold text-red-600">{formatNumber(againstVotes)}</p>
+                        <p className="text-sm text-red-700">반대</p>
+                      </div>
+                      <div className="p-3 bg-gray-50 rounded-lg">
+                        <p className="text-2xl font-bold text-gray-600">{formatNumber(abstainVotes)}</p>
+                        <p className="text-sm text-gray-700">기권</p>
+                      </div>
                     </div>
-                    <div className="p-3 bg-red-50 rounded-lg">
-                      <p className="text-2xl font-bold text-red-600">{formatNumber(proposal.againstVotes)}</p>
-                      <p className="text-sm text-red-700">반대</p>
-                    </div>
-                    <div className="p-3 bg-gray-50 rounded-lg">
-                      <p className="text-2xl font-bold text-gray-600">{formatNumber(proposal.abstainVotes)}</p>
-                      <p className="text-sm text-gray-700">기권</p>
+                    <div className="mt-4 text-sm text-gray-500">
+                      <p>제안자: {proposal.proposer}</p>
+                      <p>정족수: {formatNumber(quorum)} MOC</p>
+                      <p>통과 기준: {proposal.threshold || 50}% 이상</p>
                     </div>
                   </div>
-                  <div className="mt-4 text-sm text-gray-500">
-                    <p>제안자: {proposal.proposer}</p>
-                    <p>정족수: {formatNumber(proposal.quorum)} MOC</p>
-                    <p>통과 기준: {proposal.threshold}% 이상</p>
-                  </div>
-                </div>
-              )}
-            </div>
-          );
-        })}
+                )}
+              </div>
+            );
+          })
+        )}
       </div>
 
       {/* Voting Modal */}

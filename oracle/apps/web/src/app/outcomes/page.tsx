@@ -1,67 +1,21 @@
 "use client";
 
 import { useState } from "react";
-import { CheckCircle, XCircle, TrendingUp, TrendingDown, BarChart3, FileCheck, ExternalLink } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { CheckCircle, XCircle, TrendingUp, TrendingDown, BarChart3, FileCheck, ExternalLink, Loader2 } from "lucide-react";
 import { cn, formatNumber, timeAgo } from "@/lib/utils";
+import { api } from "@/lib/api";
 
-// Mock data
-const mockOutcomes = [
-  {
-    id: "1",
-    proposalId: "p-001",
-    proposalTitle: "Q4 마케팅 캠페인 예산",
-    executedAt: new Date(Date.now() - 14 * 24 * 60 * 60 * 1000),
-    status: "completed",
-    overallSuccess: true,
-    successRate: 87,
-    kpis: [
-      { name: "신규 가입자", target: 1000, actual: 1250, unit: "명", success: true },
-      { name: "참여율 증가", target: 15, actual: 12, unit: "%", success: false },
-      { name: "SNS 노출", target: 50000, actual: 72000, unit: "회", success: true },
-    ],
-    proofHash: "0xabc123...",
-  },
-  {
-    id: "2",
-    proposalId: "p-002",
-    proposalTitle: "스마트 컨트랙트 업그레이드",
-    executedAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000),
-    status: "completed",
-    overallSuccess: true,
-    successRate: 100,
-    kpis: [
-      { name: "가스비 절감", target: 20, actual: 23, unit: "%", success: true },
-      { name: "트랜잭션 실패율", target: 0.1, actual: 0.05, unit: "%", success: true },
-      { name: "배포 완료", target: 1, actual: 1, unit: "", success: true },
-    ],
-    proofHash: "0xdef456...",
-  },
-  {
-    id: "3",
-    proposalId: "p-003",
-    proposalTitle: "커뮤니티 이벤트 시리즈",
-    executedAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000),
-    status: "in_progress",
-    overallSuccess: null,
-    successRate: 0,
-    kpis: [
-      { name: "이벤트 참여자", target: 500, actual: 320, unit: "명", success: null },
-      { name: "피드백 점수", target: 4.5, actual: 0, unit: "점", success: null },
-    ],
-    proofHash: null,
-  },
-];
+interface KPI {
+  name: string;
+  target: number;
+  actual: number;
+  unit: string;
+  success: boolean | null;
+}
 
-// Mock trust scores
-const trustScores = [
-  { entityId: "risk-agent", entityType: "agent", name: "Risk Agent", score: 87, trend: +2 },
-  { entityId: "treasury-agent", entityType: "agent", name: "Treasury Agent", score: 82, trend: -1 },
-  { entityId: "community-agent", entityType: "agent", name: "Community Agent", score: 91, trend: +5 },
-  { entityId: "product-agent", entityType: "agent", name: "Product Agent", score: 78, trend: +3 },
-];
-
-function KPICard({ kpi }: { kpi: typeof mockOutcomes[0]["kpis"][0] }) {
-  const progress = kpi.actual / kpi.target * 100;
+function KPICard({ kpi }: { kpi: KPI }) {
+  const progress = kpi.target > 0 ? (kpi.actual / kpi.target) * 100 : 0;
   const isComplete = kpi.success !== null;
 
   return (
@@ -103,14 +57,24 @@ function KPICard({ kpi }: { kpi: typeof mockOutcomes[0]["kpis"][0] }) {
 }
 
 export default function OutcomesPage() {
-  const [outcomes] = useState(mockOutcomes);
-  const [selectedOutcome, setSelectedOutcome] = useState<typeof mockOutcomes[0] | null>(null);
+  const [selectedOutcome, setSelectedOutcome] = useState<any>(null);
 
-  const completedCount = outcomes.filter(o => o.status === "completed").length;
-  const successCount = outcomes.filter(o => o.overallSuccess === true).length;
-  const avgSuccessRate = outcomes
-    .filter(o => o.status === "completed")
-    .reduce((acc, o) => acc + o.successRate, 0) / completedCount || 0;
+  const { data: statsData, isLoading: statsLoading } = useQuery({
+    queryKey: ["stats"],
+    queryFn: () => api.getStats(),
+  });
+
+  const { data: leaderboardData, isLoading: leaderboardLoading } = useQuery({
+    queryKey: ["trust-leaderboard"],
+    queryFn: () => api.getLeaderboard("agent", 10),
+  });
+
+  // For now, we'll show stats from the API
+  const outcomes: any[] = []; // API doesn't have a direct outcomes list endpoint yet
+  const completedCount = statsData?.outcomes.totalProofs ?? 0;
+  const successRate = (statsData?.outcomes.successRate ?? 0) * 100;
+  const successCount = Math.round(completedCount * (successRate / 100));
+  const trustScores = leaderboardData?.leaderboard ?? [];
 
   return (
     <div className="space-y-6">
@@ -124,19 +88,27 @@ export default function OutcomesPage() {
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <div className="card">
           <p className="text-sm text-gray-500">총 실행</p>
-          <p className="text-2xl font-bold text-gray-900">{outcomes.length}</p>
+          <p className="text-2xl font-bold text-gray-900">
+            {statsLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : outcomes.length}
+          </p>
         </div>
         <div className="card">
           <p className="text-sm text-gray-500">완료</p>
-          <p className="text-2xl font-bold text-gray-900">{completedCount}</p>
+          <p className="text-2xl font-bold text-gray-900">
+            {statsLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : completedCount}
+          </p>
         </div>
         <div className="card">
           <p className="text-sm text-gray-500">성공</p>
-          <p className="text-2xl font-bold text-green-600">{successCount}</p>
+          <p className="text-2xl font-bold text-green-600">
+            {statsLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : successCount}
+          </p>
         </div>
         <div className="card">
           <p className="text-sm text-gray-500">평균 성공률</p>
-          <p className="text-2xl font-bold text-moss-600">{avgSuccessRate.toFixed(0)}%</p>
+          <p className="text-2xl font-bold text-moss-600">
+            {statsLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : `${successRate.toFixed(0)}%`}
+          </p>
         </div>
       </div>
 
@@ -209,7 +181,7 @@ export default function OutcomesPage() {
             <div className="card sticky top-24">
               <h3 className="font-semibold text-gray-900 mb-4">KPI 상세</h3>
               <div className="space-y-3">
-                {selectedOutcome.kpis.map((kpi, idx) => (
+                {selectedOutcome.kpis.map((kpi: KPI, idx: number) => (
                   <KPICard key={idx} kpi={kpi} />
                 ))}
               </div>
@@ -232,27 +204,35 @@ export default function OutcomesPage() {
           {/* Trust Scores */}
           <div className="card">
             <h3 className="font-semibold text-gray-900 mb-4">에이전트 신뢰도</h3>
-            <div className="space-y-3">
-              {trustScores.map((score) => (
-                <div key={score.entityId} className="flex items-center justify-between">
-                  <span className="text-sm text-gray-700">{score.name}</span>
-                  <div className="flex items-center space-x-2">
-                    <span className="text-sm font-semibold">{score.score}</span>
-                    {score.trend > 0 ? (
-                      <span className="text-green-500 flex items-center text-xs">
-                        <TrendingUp className="w-3 h-3 mr-0.5" />
-                        +{score.trend}
-                      </span>
-                    ) : (
-                      <span className="text-red-500 flex items-center text-xs">
-                        <TrendingDown className="w-3 h-3 mr-0.5" />
-                        {score.trend}
-                      </span>
-                    )}
+            {leaderboardLoading ? (
+              <div className="flex items-center justify-center py-8">
+                <Loader2 className="w-6 h-6 animate-spin text-moss-600" />
+              </div>
+            ) : trustScores.length === 0 ? (
+              <p className="text-center py-8 text-gray-500">신뢰도 데이터가 없습니다</p>
+            ) : (
+              <div className="space-y-3">
+                {trustScores.map((score: any) => (
+                  <div key={score.entityId} className="flex items-center justify-between">
+                    <span className="text-sm text-gray-700">{score.entityId}</span>
+                    <div className="flex items-center space-x-2">
+                      <span className="text-sm font-semibold">{score.score?.toFixed(0) ?? 0}</span>
+                      {(score.trend ?? 0) >= 0 ? (
+                        <span className="text-green-500 flex items-center text-xs">
+                          <TrendingUp className="w-3 h-3 mr-0.5" />
+                          +{score.trend ?? 0}
+                        </span>
+                      ) : (
+                        <span className="text-red-500 flex items-center text-xs">
+                          <TrendingDown className="w-3 h-3 mr-0.5" />
+                          {score.trend}
+                        </span>
+                      )}
+                    </div>
                   </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       </div>

@@ -3,7 +3,14 @@ import cors from "cors";
 import helmet from "helmet";
 
 // Import ORACLE modules
-import { SignalRegistry, APIAdapter, TelemetryAdapter } from "@oracle/reality-oracle";
+import {
+  SignalRegistry,
+  MockAdapter,
+  EtherscanAdapter,
+  MosslandAdapter,
+  GitHubAdapter,
+  SocialAdapter,
+} from "@oracle/reality-oracle";
 import {
   AnomalyDetector,
   ThresholdDetector,
@@ -22,6 +29,52 @@ import { OutcomeTrackerImpl, TrustManager } from "@oracle/proof-of-outcome";
 
 // Initialize services
 const signalRegistry = new SignalRegistry();
+
+// Register adapters based on available API keys
+const ETHERSCAN_API_KEY = process.env.ETHERSCAN_API_KEY;
+const TWITTER_BEARER_TOKEN = process.env.TWITTER_BEARER_TOKEN;
+const GITHUB_TOKEN = process.env.GITHUB_TOKEN;
+const MOSSLAND_API_URL = process.env.MOSSLAND_API_URL || "https://disclosure.moss.land";
+
+// Always register MockAdapter for demo fallback
+const mockAdapter = new MockAdapter({ signalCount: 3 });
+signalRegistry.registerAdapter(mockAdapter);
+
+// Register real data adapters if API keys are available
+if (ETHERSCAN_API_KEY) {
+  const etherscanAdapter = new EtherscanAdapter({
+    apiKey: ETHERSCAN_API_KEY,
+    minTransferAmount: 50000, // 50K MOC minimum for alerts
+  });
+  signalRegistry.registerAdapter(etherscanAdapter);
+  console.log("✅ EtherscanAdapter registered");
+}
+
+// MosslandAdapter doesn't require API key
+const mosslandAdapter = new MosslandAdapter({
+  apiUrl: MOSSLAND_API_URL,
+  language: "ko",
+});
+signalRegistry.registerAdapter(mosslandAdapter);
+console.log("✅ MosslandAdapter registered");
+
+// GitHubAdapter works without token but with rate limits
+const githubAdapter = new GitHubAdapter({
+  token: GITHUB_TOKEN,
+  organization: "mossland",
+});
+signalRegistry.registerAdapter(githubAdapter);
+console.log("✅ GitHubAdapter registered");
+
+// SocialAdapter for Medium (always) and Twitter (if token available)
+const socialAdapter = new SocialAdapter({
+  mediumRssUrl: "https://medium.com/feed/mossland-blog",
+  twitterBearerToken: TWITTER_BEARER_TOKEN,
+  twitterUsername: "TheMossland",
+});
+signalRegistry.registerAdapter(socialAdapter);
+console.log("✅ SocialAdapter registered" + (TWITTER_BEARER_TOKEN ? " (with Twitter)" : " (Medium only)"));
+
 const anomalyDetector = new AnomalyDetector();
 const thresholdDetector = new ThresholdDetector({ rules: [] });
 const trendDetector = new TrendDetector();
@@ -254,8 +307,11 @@ app.get("/api/stats", (req, res) => {
   }
 });
 
+// Auto signal collection interval (in seconds, 0 to disable)
+const SIGNAL_COLLECT_INTERVAL = parseInt(process.env.SIGNAL_COLLECT_INTERVAL || "60", 10);
+
 // Start server
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 4000;
 app.listen(PORT, () => {
   console.log(`
 ╔═══════════════════════════════════════════════════════════╗
@@ -286,6 +342,30 @@ app.listen(PORT, () => {
    - GET  /api/trust/:entityId - Get trust score
    - GET  /api/stats           - System statistics
   `);
+
+  // Auto signal collection
+  if (SIGNAL_COLLECT_INTERVAL > 0) {
+    console.log(`\n🔄 Auto signal collection enabled: every ${SIGNAL_COLLECT_INTERVAL} seconds`);
+
+    // Initial collection on startup
+    signalRegistry.collectSignals().then((signals) => {
+      console.log(`   ✅ Initial collection: ${signals.length} signals`);
+    }).catch((err) => {
+      console.error("   ❌ Initial collection failed:", err);
+    });
+
+    // Periodic collection
+    setInterval(async () => {
+      try {
+        const signals = await signalRegistry.collectSignals();
+        console.log(`🔄 Auto-collected ${signals.length} signals at ${new Date().toLocaleTimeString()}`);
+      } catch (error) {
+        console.error("❌ Auto-collection failed:", error);
+      }
+    }, SIGNAL_COLLECT_INTERVAL * 1000);
+  } else {
+    console.log("\n⏸️  Auto signal collection disabled (set SIGNAL_COLLECT_INTERVAL to enable)");
+  }
 });
 
 export default app;

@@ -7,6 +7,13 @@ export {
   type TelemetryAdapterConfig,
   type TelemetryMetric,
 } from "./adapters/telemetry.js";
+export { MockAdapter, type MockAdapterConfig } from "./adapters/mock.js";
+
+// Real Data Adapters
+export { EtherscanAdapter, type EtherscanAdapterConfig } from "./adapters/etherscan.js";
+export { MosslandAdapter, type MosslandAdapterConfig } from "./adapters/mossland.js";
+export { GitHubAdapter, type GitHubAdapterConfig } from "./adapters/github.js";
+export { SocialAdapter, type SocialAdapterConfig } from "./adapters/social.js";
 
 // Registry
 export { SignalRegistry, type SignalRegistryConfig } from "./registry.js";

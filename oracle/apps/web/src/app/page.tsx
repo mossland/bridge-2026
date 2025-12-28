@@ -1,8 +1,10 @@
 "use client";
 
+import { useQuery } from "@tanstack/react-query";
 import { useAccount } from "wagmi";
 import { useMOCBalance, useMOCInfo, useVotingPower } from "@/hooks/useMOC";
 import { formatMOC, formatNumber } from "@/lib/utils";
+import { api } from "@/lib/api";
 import {
   Activity,
   AlertTriangle,
@@ -11,6 +13,7 @@ import {
   TrendingUp,
   Users,
   Wallet,
+  Loader2,
 } from "lucide-react";
 import Link from "next/link";
 
@@ -193,6 +196,12 @@ function RecentActivity() {
 }
 
 export default function Dashboard() {
+  const { data: stats, isLoading: statsLoading } = useQuery({
+    queryKey: ["stats"],
+    queryFn: () => api.getStats(),
+    refetchInterval: 30000, // Refresh every 30 seconds
+  });
+
   return (
     <div className="space-y-8">
       {/* Header */}
@@ -210,30 +219,27 @@ export default function Dashboard() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <StatCard
           title="Active Signals"
-          value={128}
+          value={statsLoading ? "..." : stats?.signals.normalizedSignalCount ?? 0}
           icon={Activity}
-          trend="+12 today"
           href="/signals"
         />
         <StatCard
           title="Open Issues"
-          value={5}
+          value={statsLoading ? "..." : stats?.proposals.active ?? 0}
           icon={AlertTriangle}
-          trend="2 urgent"
           href="/issues"
         />
         <StatCard
           title="Active Proposals"
-          value={3}
+          value={statsLoading ? "..." : stats?.proposals.active ?? 0}
           icon={Vote}
-          trend="1 ending soon"
           href="/proposals"
         />
         <StatCard
-          title="Delegators"
-          value={47}
+          title="Success Rate"
+          value={statsLoading ? "..." : `${((stats?.outcomes.successRate ?? 0) * 100).toFixed(0)}%`}
           icon={Users}
-          href="/delegation"
+          href="/outcomes"
         />
       </div>
 
