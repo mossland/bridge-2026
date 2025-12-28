@@ -1,10 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAccount } from "wagmi";
 import { useTranslations } from "next-intl";
-import { Vote, Clock, CheckCircle, XCircle, Bot, ChevronDown, ChevronUp, Loader2 } from "lucide-react";
+import { Vote, Clock, CheckCircle, XCircle, Bot, ChevronDown, ChevronUp, Loader2, AlertCircle, Play, Zap } from "lucide-react";
 import { cn, getStatusColor, timeAgo, formatNumber } from "@/lib/utils";
 import { useVotingPower } from "@/hooks/useMOC";
 import { api } from "@/lib/api";
@@ -30,10 +30,12 @@ function VotingBar({ forVotes, againstVotes, abstainVotes, t }: { forVotes: numb
   );
 }
 
-function VoteModal({ proposal, onClose, t }: { proposal: any; onClose: () => void; t: any }) {
-  const { formatted } = useVotingPower();
+function VoteModal({ proposal, onClose, onSuccess, t }: { proposal: any; onClose: () => void; onSuccess: () => void; t: any }) {
+  const { formatted, votingPower } = useVotingPower();
+  const { address } = useAccount();
   const [selectedChoice, setSelectedChoice] = useState<string | null>(null);
   const [reason, setReason] = useState("");
+  const [error, setError] = useState<string | null>(null);
 
   // Extract title from decisionPacket
   const dp = proposal.decisionPacket;
@@ -43,10 +45,30 @@ function VoteModal({ proposal, onClose, t }: { proposal: any; onClose: () => voi
     dp?.issue?.title ||
     `Proposal #${proposal.id.slice(0, 8)}`;
 
+  const voteMutation = useMutation({
+    mutationFn: async () => {
+      if (!selectedChoice || !address) throw new Error("Invalid vote");
+      return api.castVote(
+        proposal.id,
+        address,
+        selectedChoice,
+        votingPower?.toString() || "1",
+        reason || undefined
+      );
+    },
+    onSuccess: () => {
+      onSuccess();
+      onClose();
+    },
+    onError: (err: Error) => {
+      setError(err.message);
+    },
+  });
+
   const handleVote = () => {
     if (!selectedChoice) return;
-    alert(`Vote: ${selectedChoice} (${formatted} votes)`);
-    onClose();
+    setError(null);
+    voteMutation.mutate();
   };
 
   return (
@@ -54,6 +76,13 @@ function VoteModal({ proposal, onClose, t }: { proposal: any; onClose: () => voi
       <div className="bg-white rounded-xl p-6 max-w-md w-full mx-4">
         <h3 className="text-lg font-semibold text-gray-900 mb-4">{t("proposals.vote")}</h3>
         <p className="text-sm text-gray-600 mb-4">{proposalTitle}</p>
+
+        {error && (
+          <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg flex items-start space-x-2">
+            <AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
+            <p className="text-sm text-red-700">{error}</p>
+          </div>
+        )}
 
         <div className="mb-4">
           <p className="text-sm text-gray-500 mb-2">{t("proposals.voteWeight")}: <span className="font-semibold text-moss-600">{formatted} MOC</span></p>
@@ -68,9 +97,11 @@ function VoteModal({ proposal, onClose, t }: { proposal: any; onClose: () => voi
             <button
               key={choice.value}
               onClick={() => setSelectedChoice(choice.value)}
+              disabled={voteMutation.isPending}
               className={cn(
                 "w-full flex items-center space-x-3 p-3 rounded-lg border-2 transition-all",
-                selectedChoice === choice.value ? choice.color : "border-gray-200 hover:border-gray-300"
+                selectedChoice === choice.value ? choice.color : "border-gray-200 hover:border-gray-300",
+                voteMutation.isPending && "opacity-50 cursor-not-allowed"
               )}
             >
               <choice.icon className="w-5 h-5" />
@@ -84,19 +115,33 @@ function VoteModal({ proposal, onClose, t }: { proposal: any; onClose: () => voi
           <textarea
             value={reason}
             onChange={(e) => setReason(e.target.value)}
-            className="w-full border border-gray-300 rounded-lg p-2 text-sm"
+            disabled={voteMutation.isPending}
+            className="w-full border border-gray-300 rounded-lg p-2 text-sm disabled:opacity-50"
             rows={3}
           />
         </div>
 
         <div className="flex space-x-3">
-          <button onClick={onClose} className="btn-secondary flex-1">{t("common.cancel")}</button>
+          <button
+            onClick={onClose}
+            disabled={voteMutation.isPending}
+            className="btn-secondary flex-1 disabled:opacity-50"
+          >
+            {t("common.cancel")}
+          </button>
           <button
             onClick={handleVote}
-            disabled={!selectedChoice}
-            className="btn-primary flex-1 disabled:opacity-50"
+            disabled={!selectedChoice || voteMutation.isPending}
+            className="btn-primary flex-1 disabled:opacity-50 flex items-center justify-center"
           >
-            {t("proposals.castVote")}
+            {voteMutation.isPending ? (
+              <>
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                {t("proposals.voting")}
+              </>
+            ) : (
+              t("proposals.castVote")
+            )}
           </button>
         </div>
       </div>
@@ -107,9 +152,11 @@ function VoteModal({ proposal, onClose, t }: { proposal: any; onClose: () => voi
 export default function ProposalsPage() {
   const t = useTranslations();
   const { isConnected } = useAccount();
+  const queryClient = useQueryClient();
   const [filter, setFilter] = useState<string>("all");
   const [votingProposal, setVotingProposal] = useState<any>(null);
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [voteSuccess, setVoteSuccess] = useState<string | null>(null);
 
   const { data, isLoading } = useQuery({
     queryKey: ["proposals", filter],
@@ -119,8 +166,42 @@ export default function ProposalsPage() {
 
   const proposals = data?.proposals ?? [];
 
+  const handleVoteSuccess = () => {
+    // Invalidate and refetch proposals
+    queryClient.invalidateQueries({ queryKey: ["proposals"] });
+    // Show success message
+    setVoteSuccess(t("proposals.voted"));
+    setTimeout(() => setVoteSuccess(null), 3000);
+  };
+
+  // Execute mutation
+  const executeMutation = useMutation({
+    mutationFn: (proposalId: string) => api.executeProposal(proposalId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["proposals"] });
+      setVoteSuccess(t("proposals.executed"));
+      setTimeout(() => setVoteSuccess(null), 3000);
+    },
+  });
+
+  // Finalize mutation (for ending voting period)
+  const finalizeMutation = useMutation({
+    mutationFn: (proposalId: string) => api.finalizeProposal(proposalId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["proposals"] });
+    },
+  });
+
   return (
     <div className="space-y-6">
+      {/* Success Toast */}
+      {voteSuccess && (
+        <div className="fixed top-4 right-4 z-50 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg flex items-center space-x-2 animate-in fade-in slide-in-from-top-2">
+          <CheckCircle className="w-5 h-5" />
+          <span className="font-medium">{voteSuccess}</span>
+        </div>
+      )}
+
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -185,7 +266,9 @@ export default function ProposalsPage() {
                     <div className="flex items-center space-x-2 mb-2">
                       <span className={cn("badge", getStatusColor(proposal.status))}>
                         {proposal.status === "active" ? t("proposals.active") :
-                         proposal.status === "passed" ? t("proposals.passed") : t("proposals.rejected")}
+                         proposal.status === "passed" ? t("proposals.passed") :
+                         proposal.status === "executed" ? t("proposals.executed") :
+                         proposal.status === "pending" ? t("proposals.pending") : t("proposals.rejected")}
                       </span>
                       {(proposal.aiAssisted || dp) && (
                         <span className="badge bg-purple-50 text-purple-600">
@@ -231,6 +314,26 @@ export default function ProposalsPage() {
                       >
                         {t("proposals.vote")}
                       </button>
+                    )}
+                    {proposal.status === "passed" && isConnected && (
+                      <button
+                        onClick={() => executeMutation.mutate(proposal.id)}
+                        disabled={executeMutation.isPending}
+                        className="btn-primary bg-purple-600 hover:bg-purple-700 flex items-center disabled:opacity-50"
+                      >
+                        {executeMutation.isPending ? (
+                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        ) : (
+                          <Zap className="w-4 h-4 mr-2" />
+                        )}
+                        {t("proposals.execute")}
+                      </button>
+                    )}
+                    {proposal.status === "executed" && (
+                      <span className="text-sm text-purple-600 flex items-center">
+                        <CheckCircle className="w-4 h-4 mr-1" />
+                        {t("proposals.executed")}
+                      </span>
                     )}
                     <button
                       onClick={() => setExpandedId(isExpanded ? null : proposal.id)}
@@ -306,6 +409,7 @@ export default function ProposalsPage() {
         <VoteModal
           proposal={votingProposal}
           onClose={() => setVotingProposal(null)}
+          onSuccess={handleVoteSuccess}
           t={t}
         />
       )}

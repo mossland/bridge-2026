@@ -416,6 +416,75 @@ app.post("/api/proposals/:id/tally", (req, res) => {
   }
 });
 
+app.post("/api/proposals/:id/finalize", (req, res) => {
+  try {
+    const proposal = votingSystem.finalizeProposal(req.params.id);
+    res.json({ proposal });
+  } catch (error: any) {
+    res.status(400).json({ error: error.message || "Failed to finalize proposal" });
+  }
+});
+
+app.post("/api/proposals/:id/execute", async (req, res) => {
+  try {
+    const proposalId = req.params.id;
+    const proposal = votingSystem.getProposal(proposalId);
+
+    if (!proposal) {
+      return res.status(404).json({ error: "Proposal not found" });
+    }
+
+    // Check if proposal has passed
+    if (proposal.status !== "passed") {
+      return res.status(400).json({
+        error: `Proposal cannot be executed (status: ${proposal.status})`,
+      });
+    }
+
+    // Execute the proposal
+    const executedProposal = votingSystem.executeProposal(proposalId);
+
+    // Extract actions from decision packet
+    const dp = proposal.decisionPacket;
+    const actions: Array<{
+      type: string;
+      target: string;
+      data: Record<string, unknown>;
+      status: "completed" | "pending" | "in_progress" | "failed" | "partial";
+      error?: string;
+    }> = [];
+
+    if (dp?.recommendation?.action) {
+      const actionDescription = typeof dp.recommendation.action === "string"
+        ? dp.recommendation.action
+        : dp.recommendation.action?.action || "Execute recommendation";
+
+      actions.push({
+        type: "governance",
+        target: "proposal_execution",
+        data: {
+          description: actionDescription,
+          rationale: dp.recommendation.rationale,
+          expectedOutcome: dp.recommendation.expectedOutcome,
+          executedAt: new Date().toISOString(),
+        },
+        status: "completed",
+      });
+    }
+
+    // Record the execution as an outcome
+    const execution = await outcomeTracker.recordExecution(proposalId, actions);
+
+    res.json({
+      proposal: executedProposal,
+      execution,
+      message: "Proposal executed successfully",
+    });
+  } catch (error: any) {
+    res.status(400).json({ error: error.message || "Failed to execute proposal" });
+  }
+});
+
 // Outcome endpoints
 app.post("/api/outcomes", async (req, res) => {
   try {
@@ -569,8 +638,10 @@ app.listen(PORT, () => {
    - POST /api/deliberate      - Agent deliberation
    - GET  /api/proposals       - List proposals
    - POST /api/proposals       - Create proposal
-   - POST /api/proposals/:id/vote  - Cast vote
-   - POST /api/proposals/:id/tally - Tally votes
+   - POST /api/proposals/:id/vote     - Cast vote
+   - POST /api/proposals/:id/tally    - Tally votes
+   - POST /api/proposals/:id/finalize - Finalize voting
+   - POST /api/proposals/:id/execute  - Execute passed proposal
    - POST /api/outcomes        - Record outcome
    - GET  /api/outcomes/:id/proof  - Generate proof
    - GET  /api/trust/:entityId - Get trust score

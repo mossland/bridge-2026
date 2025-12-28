@@ -123,7 +123,9 @@
     "reason": "Reason (Optional)",
     "castVote": "Cast Vote",
     "tally": "Tally Votes",
-    "tallying": "Tallying..."
+    "tallying": "Tallying...",
+    "execute": "Execute",
+    "executing": "Executing..."
   },
   "delegation": {
     "title": "Delegation Policies",

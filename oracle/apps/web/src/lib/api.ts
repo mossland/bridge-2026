@@ -96,6 +96,18 @@ class APIClient {
     });
   }
 
+  async finalizeProposal(proposalId: string) {
+    return this.fetch<{ proposal: any }>(`/api/proposals/${proposalId}/finalize`, {
+      method: "POST",
+    });
+  }
+
+  async executeProposal(proposalId: string) {
+    return this.fetch<{ proposal: any; execution: any; message: string }>(`/api/proposals/${proposalId}/execute`, {
+      method: "POST",
+    });
+  }
+
   // Outcomes
   async recordOutcome(proposalId: string, actions: any[]) {
     return this.fetch<{ execution: any }>("/api/outcomes", {

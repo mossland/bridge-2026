@@ -123,7 +123,9 @@
     "reason": "사유 (선택)",
     "castVote": "투표하기",
     "tally": "집계",
-    "tallying": "집계 중..."
+    "tallying": "집계 중...",
+    "execute": "실행",
+    "executing": "실행 중..."
   },
   "delegation": {
     "title": "위임 정책",

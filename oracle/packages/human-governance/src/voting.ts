@@ -189,6 +189,22 @@ export class VotingSystem {
     return proposal;
   }
 
+  executeProposal(proposalId: string): Proposal {
+    const proposal = this.proposals.get(proposalId);
+    if (!proposal) {
+      throw new Error(`Proposal ${proposalId} not found`);
+    }
+
+    if (proposal.status !== "passed") {
+      throw new Error(`Proposal ${proposalId} has not passed (status: ${proposal.status})`);
+    }
+
+    proposal.status = "executed";
+    proposal.executedAt = now();
+
+    return proposal;
+  }
+
   getProposal(proposalId: string): Proposal | undefined {
     return this.proposals.get(proposalId);
   }

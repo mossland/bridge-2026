@@ -42,5 +42,8 @@ cache/
 artifacts/
 typechain-types/
 
+# Database
+apps/api/data/
+
 # Misc
 *.pem

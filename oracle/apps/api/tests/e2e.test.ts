@@ -171,6 +171,29 @@ async function testTallyVotes(proposalId: string) {
   assert(typeof data.tally.participationRate === "number", "participationRate should be a number");
 }
 
+async function testFinalizeProposal(proposalId: string) {
+  const { response, data } = await fetchJson(`/api/proposals/${proposalId}/finalize`, {
+    method: "POST",
+  });
+
+  assert(response.ok, "Finalize should return 200");
+  assert(data.proposal, "Should return a proposal");
+  assert(["passed", "rejected"].includes(data.proposal.status), "Proposal should be passed or rejected");
+  return data.proposal.status;
+}
+
+async function testExecuteProposal(proposalId: string) {
+  const { response, data } = await fetchJson(`/api/proposals/${proposalId}/execute`, {
+    method: "POST",
+  });
+
+  assert(response.ok, `Execute should return 200, got ${response.status}`);
+  assert(data.proposal, "Should return a proposal");
+  assert(data.proposal.status === "executed", "Proposal should be executed");
+  assert(data.execution, "Should return an execution record");
+  assert(data.message === "Proposal executed successfully", "Should return success message");
+}
+
 async function testGetStats() {
   const { response, data } = await fetchJson("/api/stats");
   assert(response.ok, "Get stats should return 200");
@@ -301,7 +324,49 @@ async function main() {
     await runTest("Tally Votes", async () => {
       await testTallyVotes(proposalId!);
     });
+    await runTest("Finalize Proposal", async () => {
+      await testFinalizeProposal(proposalId!);
+    });
   }
+
+  // Execute test - need to create a new proposal that passes (separate from above)
+  await runTest("Execute Proposal", async () => {
+    // Create a fresh proposal for execution test
+    const decisionPacket = {
+      id: `e2e-exec-${Date.now()}`,
+      issueId: "test-issue",
+      recommendation: {
+        action: "E2E Execute Test Action",
+        rationale: "Testing execution flow",
+        expectedOutcome: "Successful execution",
+      },
+      risks: [],
+    };
+    const { data: proposalData } = await fetchJson("/api/proposals", {
+      method: "POST",
+      body: JSON.stringify({ decisionPacket, proposer: "0xE2E_EXEC_TEST" }),
+    });
+    const execProposalId = proposalData.proposal.id;
+
+    // Cast enough votes to pass (need 100 votes for quorum)
+    for (let i = 0; i < 101; i++) {
+      await fetchJson(`/api/proposals/${execProposalId}/vote`, {
+        method: "POST",
+        body: JSON.stringify({
+          voter: `0xVOTER_EXEC_${i}_${Date.now()}`,
+          choice: "for",
+          weight: "1",
+        }),
+      });
+    }
+
+    // Finalize to pass
+    const { data: finalizeData } = await fetchJson(`/api/proposals/${execProposalId}/finalize`, { method: "POST" });
+    assert(finalizeData.proposal.status === "passed", `Proposal should pass after finalize, got: ${finalizeData.proposal?.status}`);
+
+    // Execute
+    await testExecuteProposal(execProposalId);
+  });
 
   // Full Workflow Test
   await runTest("Full Workflow", testFullWorkflow);
