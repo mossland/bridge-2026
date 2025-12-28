@@ -53,21 +53,28 @@ function KPICard({ kpi }: { kpi: KPI }) {
 export default function OutcomesPage() {
   const t = useTranslations();
   const [selectedOutcome, setSelectedOutcome] = useState<any>(null);
+  const [leaderboardType, setLeaderboardType] = useState<string>("agent");
 
   const { data: statsData, isLoading: statsLoading } = useQuery({
     queryKey: ["stats"],
     queryFn: () => api.getStats(),
   });
 
-  const { data: leaderboardData, isLoading: leaderboardLoading } = useQuery({
-    queryKey: ["trust-leaderboard"],
-    queryFn: () => api.getLeaderboard("agent", 10),
+  const { data: outcomesData, isLoading: outcomesLoading } = useQuery({
+    queryKey: ["outcomes"],
+    queryFn: () => api.getOutcomes(),
+    refetchInterval: 30000,
   });
 
-  const outcomes: any[] = [];
+  const { data: leaderboardData, isLoading: leaderboardLoading } = useQuery({
+    queryKey: ["trust-leaderboard", leaderboardType],
+    queryFn: () => api.getLeaderboard(leaderboardType, 10),
+  });
+
+  const outcomes = outcomesData?.outcomes ?? [];
   const completedCount = statsData?.outcomes.totalProofs ?? 0;
   const successRate = (statsData?.outcomes.successRate ?? 0) * 100;
-  const successCount = Math.round(completedCount * (successRate / 100));
+  const successCount = outcomes.filter((o: any) => o.overallSuccess).length;
   const trustScores = leaderboardData?.leaderboard ?? [];
 
   return (
@@ -81,19 +88,19 @@ export default function OutcomesPage() {
         <div className="card">
           <p className="text-sm text-gray-500">{t("outcomes.executionRecord")}</p>
           <p className="text-2xl font-bold text-gray-900">
-            {statsLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : outcomes.length}
+            {outcomesLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : outcomes.length}
           </p>
         </div>
         <div className="card">
           <p className="text-sm text-gray-500">{t("outcomes.verified")}</p>
           <p className="text-2xl font-bold text-gray-900">
-            {statsLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : completedCount}
+            {outcomesLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : completedCount}
           </p>
         </div>
         <div className="card">
           <p className="text-sm text-gray-500">{t("proposals.passed")}</p>
           <p className="text-2xl font-bold text-green-600">
-            {statsLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : successCount}
+            {outcomesLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : successCount}
           </p>
         </div>
         <div className="card">
@@ -107,7 +114,11 @@ export default function OutcomesPage() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 space-y-4">
           <h2 className="text-lg font-semibold text-gray-900">{t("outcomes.executionRecord")}</h2>
-          {outcomes.length === 0 ? (
+          {outcomesLoading ? (
+            <div className="card flex items-center justify-center py-12">
+              <Loader2 className="w-8 h-8 animate-spin text-moss-600" />
+            </div>
+          ) : outcomes.length === 0 ? (
             <div className="card text-center py-12 text-gray-500">
               <BarChart3 className="w-12 h-12 mx-auto mb-3 text-gray-300" />
               <p>{t("outcomes.noOutcomes")}</p>
@@ -143,7 +154,7 @@ export default function OutcomesPage() {
                       )}
                     </div>
                     <h3 className="font-semibold text-gray-900">{outcome.proposalTitle}</h3>
-                    <p className="mt-1 text-sm text-gray-500">{timeAgo(outcome.executedAt)}</p>
+                    <p className="mt-1 text-sm text-gray-500">{timeAgo(new Date(outcome.executedAt))}</p>
                   </div>
                   <div className="text-right">
                     <p className="text-sm text-gray-500">KPI {outcome.kpis.length}</p>
@@ -178,7 +189,18 @@ export default function OutcomesPage() {
           )}
 
           <div className="card">
-            <h3 className="font-semibold text-gray-900 mb-4">{t("outcomes.trustScores")}</h3>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-semibold text-gray-900">{t("outcomes.trustScores")}</h3>
+              <select
+                value={leaderboardType}
+                onChange={(e) => setLeaderboardType(e.target.value)}
+                className="text-sm border-gray-300 rounded-lg"
+              >
+                <option value="agent">Agents</option>
+                <option value="proposer">Proposers</option>
+                <option value="delegate">Delegates</option>
+              </select>
+            </div>
             {leaderboardLoading ? (
               <div className="flex items-center justify-center py-8">
                 <Loader2 className="w-6 h-6 animate-spin text-moss-600" />
@@ -187,20 +209,34 @@ export default function OutcomesPage() {
               <p className="text-center py-8 text-gray-500">{t("outcomes.noOutcomes")}</p>
             ) : (
               <div className="space-y-3">
-                {trustScores.map((score: any) => (
+                {trustScores.map((score: any, idx: number) => (
                   <div key={score.entityId} className="flex items-center justify-between">
-                    <span className="text-sm text-gray-700">{score.entityId}</span>
                     <div className="flex items-center space-x-2">
-                      <span className="text-sm font-semibold">{score.score?.toFixed(0) ?? 0}</span>
-                      {(score.trend ?? 0) >= 0 ? (
-                        <span className="text-green-500 flex items-center text-xs">
-                          <TrendingUp className="w-3 h-3 mr-0.5" />+{score.trend ?? 0}
-                        </span>
-                      ) : (
-                        <span className="text-red-500 flex items-center text-xs">
-                          <TrendingDown className="w-3 h-3 mr-0.5" />{score.trend}
-                        </span>
-                      )}
+                      <span className={cn(
+                        "w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold",
+                        idx === 0 ? "bg-yellow-100 text-yellow-700" :
+                        idx === 1 ? "bg-gray-100 text-gray-700" :
+                        idx === 2 ? "bg-orange-100 text-orange-700" :
+                        "bg-gray-50 text-gray-500"
+                      )}>
+                        {idx + 1}
+                      </span>
+                      <span className="text-sm text-gray-700 font-mono truncate max-w-[120px]">
+                        {score.entityId.length > 15 ? `${score.entityId.slice(0, 8)}...` : score.entityId}
+                      </span>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <span className="text-sm font-semibold">{score.score?.toFixed(0) ?? 50}</span>
+                      <div className="w-16 h-2 bg-gray-200 rounded-full">
+                        <div
+                          className={cn(
+                            "h-2 rounded-full",
+                            (score.score ?? 50) >= 70 ? "bg-green-500" :
+                            (score.score ?? 50) >= 40 ? "bg-yellow-500" : "bg-red-500"
+                          )}
+                          style={{ width: `${score.score ?? 50}%` }}
+                        />
+                      </div>
                     </div>
                   </div>
                 ))}

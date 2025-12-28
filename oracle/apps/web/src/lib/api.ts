@@ -109,11 +109,19 @@ class APIClient {
   }
 
   // Outcomes
+  async getOutcomes() {
+    return this.fetch<{ outcomes: any[]; count: number }>("/api/outcomes");
+  }
+
   async recordOutcome(proposalId: string, actions: any[]) {
     return this.fetch<{ execution: any }>("/api/outcomes", {
       method: "POST",
       body: JSON.stringify({ proposalId, actions }),
     });
+  }
+
+  async getExecution(executionId: string) {
+    return this.fetch<{ execution: any }>(`/api/outcomes/${executionId}`);
   }
 
   async getOutcomeProof(executionId: string) {

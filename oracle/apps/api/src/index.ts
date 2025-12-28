@@ -475,9 +475,23 @@ app.post("/api/proposals/:id/execute", async (req, res) => {
     // Record the execution as an outcome
     const execution = await outcomeTracker.recordExecution(proposalId, actions);
 
+    // Generate proof and update trust scores
+    const proof = await outcomeTracker.generateProof(execution.id);
+
+    // Update trust score for the proposer
+    trustManager.recordOutcome(proposal.proposer, "proposer", proof);
+
+    // Update trust score for agents involved in deliberation
+    if (dp?.agents) {
+      for (const agentId of Object.keys(dp.agents)) {
+        trustManager.recordOutcome(agentId, "agent", proof);
+      }
+    }
+
     res.json({
       proposal: executedProposal,
       execution,
+      proof,
       message: "Proposal executed successfully",
     });
   } catch (error: any) {
@@ -486,6 +500,44 @@ app.post("/api/proposals/:id/execute", async (req, res) => {
 });
 
 // Outcome endpoints
+app.get("/api/outcomes", async (req, res) => {
+  try {
+    const proofs = outcomeTracker.listProofs();
+    const outcomes = proofs.map((proof) => {
+      const proposal = votingSystem.getProposal(proof.proposalId);
+      const dp = proposal?.decisionPacket;
+      const rec = dp?.recommendation;
+      const title = proposal?.decisionPacket?.issue?.title ||
+        (typeof rec?.action === "string" ? rec.action : rec?.action?.action) ||
+        `Proposal #${proof.proposalId.slice(0, 8)}`;
+
+      return {
+        id: proof.id,
+        executionId: proof.executionId,
+        proposalId: proof.proposalId,
+        proposalTitle: title,
+        status: "completed",
+        overallSuccess: proof.overallSuccess,
+        successRate: proof.successRate,
+        kpis: proof.kpiResults.map((kpi) => ({
+          name: kpi.kpiName,
+          target: kpi.targetValue,
+          actual: kpi.actualValue,
+          unit: kpi.unit,
+          success: kpi.success,
+        })),
+        proofHash: proof.proofHash,
+        executedAt: proposal?.executedAt || proof.recordedAt,
+        recordedAt: proof.recordedAt,
+      };
+    });
+
+    res.json({ outcomes, count: outcomes.length });
+  } catch (error) {
+    res.status(500).json({ error: "Failed to fetch outcomes" });
+  }
+});
+
 app.post("/api/outcomes", async (req, res) => {
   try {
     const { proposalId, actions } = req.body;
@@ -496,6 +548,18 @@ app.post("/api/outcomes", async (req, res) => {
     res.status(201).json({ execution });
   } catch (error) {
     res.status(500).json({ error: "Failed to record outcome" });
+  }
+});
+
+app.get("/api/outcomes/:executionId", async (req, res) => {
+  try {
+    const execution = outcomeTracker.getExecution(req.params.executionId);
+    if (!execution) {
+      return res.status(404).json({ error: "Execution not found" });
+    }
+    res.json({ execution });
+  } catch (error) {
+    res.status(500).json({ error: "Failed to fetch execution" });
   }
 });
 
