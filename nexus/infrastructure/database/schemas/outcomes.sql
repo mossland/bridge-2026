@@ -59,3 +59,4 @@ CREATE INDEX IF NOT EXISTS idx_governance_learning_categories ON governance_lear
 CREATE INDEX IF NOT EXISTS idx_governance_learning_agent_types ON governance_learning USING GIN(agent_types);
 CREATE INDEX IF NOT EXISTS idx_governance_learning_created_at ON governance_learning(created_at);
 
+

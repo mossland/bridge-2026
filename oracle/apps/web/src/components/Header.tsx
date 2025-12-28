@@ -2,8 +2,10 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { ConnectButton } from "@rainbow-me/rainbowkit";
 import { cn } from "@/lib/utils";
+import { LanguageSwitcher } from "./LanguageSwitcher";
 import {
   Activity,
   AlertTriangle,
@@ -13,17 +15,18 @@ import {
   Home,
 } from "lucide-react";
 
-const navigation = [
-  { name: "Dashboard", href: "/", icon: Home },
-  { name: "Reality Feed", href: "/signals", icon: Activity },
-  { name: "Issues", href: "/issues", icon: AlertTriangle },
-  { name: "Proposals", href: "/proposals", icon: Vote },
-  { name: "Delegation", href: "/delegation", icon: Users },
-  { name: "Outcomes", href: "/outcomes", icon: BarChart3 },
-];
+const navigationKeys = [
+  { key: "dashboard", href: "/", icon: Home },
+  { key: "signals", href: "/signals", icon: Activity },
+  { key: "issues", href: "/issues", icon: AlertTriangle },
+  { key: "proposals", href: "/proposals", icon: Vote },
+  { key: "delegation", href: "/delegation", icon: Users },
+  { key: "outcomes", href: "/outcomes", icon: BarChart3 },
+] as const;
 
 export function Header() {
   const pathname = usePathname();
+  const t = useTranslations("nav");
 
   return (
     <header className="bg-white border-b border-gray-200 sticky top-0 z-50">
@@ -41,12 +44,12 @@ export function Header() {
 
           {/* Navigation */}
           <nav className="hidden md:flex items-center space-x-1">
-            {navigation.map((item) => {
+            {navigationKeys.map((item) => {
               const Icon = item.icon;
               const isActive = pathname === item.href;
               return (
                 <Link
-                  key={item.name}
+                  key={item.key}
                   href={item.href}
                   className={cn(
                     "flex items-center space-x-1 px-3 py-2 rounded-lg text-sm font-medium transition-colors",
@@ -56,14 +59,15 @@ export function Header() {
                   )}
                 >
                   <Icon className="w-4 h-4" />
-                  <span>{item.name}</span>
+                  <span>{t(item.key)}</span>
                 </Link>
               );
             })}
           </nav>
 
-          {/* Wallet Connect */}
-          <div className="flex items-center">
+          {/* Language & Wallet */}
+          <div className="flex items-center space-x-3">
+            <LanguageSwitcher />
             <ConnectButton
               showBalance={false}
               chainStatus="icon"

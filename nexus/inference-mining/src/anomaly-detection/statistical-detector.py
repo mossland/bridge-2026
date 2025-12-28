@@ -165,3 +165,4 @@ class StatisticalDetector:
         else:
             raise ValueError(f"Unknown method: {method}")
 
+

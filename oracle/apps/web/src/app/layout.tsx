@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
+import { NextIntlClientProvider } from "next-intl";
+import { getMessages } from "next-intl/server";
 import { Providers } from "@/components/Providers";
 import { Header } from "@/components/Header";
 import "./globals.css";
@@ -14,22 +16,26 @@ export const metadata: Metadata = {
   description: "Where agents propose, people decide, reality updates.",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const messages = await getMessages();
+
   return (
-    <html lang="ko">
+    <html lang="en" suppressHydrationWarning>
       <body className={inter.className}>
-        <Providers>
-          <div className="min-h-screen bg-gray-50">
-            <Header />
-            <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-              {children}
-            </main>
-          </div>
-        </Providers>
+        <NextIntlClientProvider messages={messages}>
+          <Providers>
+            <div className="min-h-screen bg-gray-50">
+              <Header />
+              <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+                {children}
+              </main>
+            </div>
+          </Providers>
+        </NextIntlClientProvider>
       </body>
     </html>
   );

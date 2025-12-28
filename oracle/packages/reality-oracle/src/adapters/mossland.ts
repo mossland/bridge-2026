@@ -6,6 +6,49 @@ export interface MosslandAdapterConfig {
   language?: "en" | "ko";
 }
 
+const translations = {
+  en: {
+    newDisclosure: "New disclosure",
+    disclosureStats: "Disclosure status: {count} total",
+    mocPrice: "MOC Price: {price} ({change}%)",
+    priceAlert: "MOC Price Alert: {direction} {change}%",
+    marketCap: "MOC Market Cap: {krw} ({usd})",
+    blockchain: "MOC Blockchain: {holders} holders, {daily} tx/day",
+    txAlert: "Transaction surge: {count} in 24h",
+    recentTx: "Recent transactions: {count}",
+    roadmap: "Roadmap: {recent} completed, {expected} upcoming",
+    rise: "rise",
+    fall: "fall",
+    unit: {
+      count: "items",
+      krw: "KRW",
+      percent: "%",
+      holders: "holders",
+      tx: "tx",
+    },
+  },
+  ko: {
+    newDisclosure: "새 공시",
+    disclosureStats: "공시 현황: 총 {count}건",
+    mocPrice: "MOC 가격: {price} ({change}%)",
+    priceAlert: "MOC 가격 급변: {direction} {change}%",
+    marketCap: "MOC 시가총액: {krw} ({usd})",
+    blockchain: "MOC 블록체인: {holders}명 홀더, {daily}건/일",
+    txAlert: "트랜잭션 급증: 24시간 {count}건",
+    recentTx: "최근 트랜잭션: {count}건",
+    roadmap: "로드맵: 최근 {recent}건 완료, {expected}건 예정",
+    rise: "상승",
+    fall: "하락",
+    unit: {
+      count: "건",
+      krw: "KRW",
+      percent: "%",
+      holders: "holders",
+      tx: "건",
+    },
+  },
+};
+
 const DEFAULT_API_URL = "https://disclosure.moss.land";
 
 interface Disclosure {
@@ -357,6 +400,7 @@ export class MosslandAdapter extends BaseAdapter {
       isHighActivity?: boolean;
     };
 
+    const t = translations[this.config.language || "en"];
     let category: string;
     let severity: NormalizedSignal["severity"];
     let value: number;
@@ -368,16 +412,16 @@ export class MosslandAdapter extends BaseAdapter {
         category = "mossland_disclosure";
         severity = "high";
         value = 1;
-        unit = "건";
-        description = `새 공시: ${data.title}`;
+        unit = t.unit.count;
+        description = `${t.newDisclosure}: ${data.title}`;
         break;
 
       case "disclosure_stats":
         category = "mossland_disclosure";
         severity = "low";
         value = data.totalCount || 0;
-        unit = "건";
-        description = `공시 현황: 총 ${data.totalCount}건`;
+        unit = t.unit.count;
+        description = t.disclosureStats.replace("{count}", String(data.totalCount || 0));
         break;
 
       case "price":
@@ -385,56 +429,67 @@ export class MosslandAdapter extends BaseAdapter {
         severity = Math.abs(data.changeRate || 0) > 10 ? "high" :
                    Math.abs(data.changeRate || 0) > 5 ? "medium" : "low";
         value = data.price || 0;
-        unit = "KRW";
-        description = `MOC 가격: ${this.formatKrw(data.price || 0)} (${(data.changeRate || 0) >= 0 ? "+" : ""}${(data.changeRate || 0).toFixed(2)}%)`;
+        unit = t.unit.krw;
+        const changeStr = `${(data.changeRate || 0) >= 0 ? "+" : ""}${(data.changeRate || 0).toFixed(2)}`;
+        description = t.mocPrice
+          .replace("{price}", this.formatKrw(data.price || 0))
+          .replace("{change}", changeStr);
         break;
 
       case "price_alert":
         category = "moc_price_alert";
         severity = Math.abs(data.changeRate || 0) > 10 ? "critical" : "high";
         value = data.changeRate || 0;
-        unit = "%";
-        description = `MOC 가격 급변: ${data.direction === "RISE" ? "상승" : "하락"} ${Math.abs(data.changeRate || 0).toFixed(2)}%`;
+        unit = t.unit.percent;
+        description = t.priceAlert
+          .replace("{direction}", data.direction === "RISE" ? t.rise : t.fall)
+          .replace("{change}", Math.abs(data.changeRate || 0).toFixed(2));
         break;
 
       case "market_overview":
         category = "moc_market";
         severity = "low";
         value = data.marketCapKrw || 0;
-        unit = "KRW";
-        description = `MOC 시가총액: ${this.formatKrw(data.marketCapKrw || 0)} (${this.formatUsd(data.marketCapUsd || 0)})`;
+        unit = t.unit.krw;
+        description = t.marketCap
+          .replace("{krw}", this.formatKrw(data.marketCapKrw || 0))
+          .replace("{usd}", this.formatUsd(data.marketCapUsd || 0));
         break;
 
       case "blockchain_stats":
         category = "moc_blockchain";
         severity = "low";
         value = data.holderCount || 0;
-        unit = "holders";
-        description = `MOC 블록체인: ${(data.holderCount || 0).toLocaleString()}명 홀더, ${(data.dailyTransactions || 0).toLocaleString()}건/일`;
+        unit = t.unit.holders;
+        description = t.blockchain
+          .replace("{holders}", (data.holderCount || 0).toLocaleString())
+          .replace("{daily}", (data.dailyTransactions || 0).toLocaleString());
         break;
 
       case "transaction_alert":
         category = "moc_tx_alert";
         severity = "medium";
         value = data.dailyTransactions || 0;
-        unit = "건";
-        description = `트랜잭션 급증: 24시간 ${(data.dailyTransactions || 0).toLocaleString()}건`;
+        unit = t.unit.tx;
+        description = t.txAlert.replace("{count}", (data.dailyTransactions || 0).toLocaleString());
         break;
 
       case "recent_transactions":
         category = "moc_transactions";
         severity = "low";
         value = data.count || 0;
-        unit = "건";
-        description = `최근 트랜잭션: ${data.count}건`;
+        unit = t.unit.tx;
+        description = t.recentTx.replace("{count}", String(data.count || 0));
         break;
 
       case "release_schedule":
         category = "mossland_roadmap";
         severity = (data.expectedCount || 0) > 0 ? "medium" : "low";
         value = data.expectedCount || 0;
-        unit = "건";
-        description = `로드맵: 최근 ${data.recentCount}건 완료, ${data.expectedCount}건 예정`;
+        unit = t.unit.count;
+        description = t.roadmap
+          .replace("{recent}", String(data.recentCount || 0))
+          .replace("{expected}", String(data.expectedCount || 0));
         break;
 
       default:
@@ -449,9 +504,17 @@ export class MosslandAdapter extends BaseAdapter {
   }
 
   private formatKrw(amount: number): string {
-    if (amount >= 100000000) return (amount / 100000000).toFixed(1) + "억원";
-    if (amount >= 10000) return (amount / 10000).toFixed(1) + "만원";
-    return amount.toLocaleString() + "원";
+    const lang = this.config.language || "en";
+    if (lang === "ko") {
+      if (amount >= 100000000) return (amount / 100000000).toFixed(1) + "억원";
+      if (amount >= 10000) return (amount / 10000).toFixed(1) + "만원";
+      return amount.toLocaleString() + "원";
+    } else {
+      if (amount >= 1000000000) return "₩" + (amount / 1000000000).toFixed(2) + "B";
+      if (amount >= 1000000) return "₩" + (amount / 1000000).toFixed(1) + "M";
+      if (amount >= 1000) return "₩" + (amount / 1000).toFixed(1) + "K";
+      return "₩" + amount.toLocaleString();
+    }
   }
 
   private formatUsd(amount: number): string {

@@ -132,3 +132,4 @@ function getSignalDescription(signal: Signal): string {
   return '신호 데이터';
 }
 
+

@@ -274,3 +274,4 @@ export class CityPulseCollector extends BaseCollector {
   }
 }
 
+

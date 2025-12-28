@@ -5,7 +5,51 @@ export interface GitHubAdapterConfig {
   token?: string;
   organization?: string;
   repositories?: string[];
+  language?: "en" | "ko";
 }
+
+const translations = {
+  en: {
+    orgStats: "Mossland GitHub: {public} public, {private} private repos, {stars} stars",
+    repoUpdate: "{repo} repository updated",
+    privateRepoUpdate: "[Private Repository] updated ({size} KB)",
+    commit: "[{repo}] {message} (by {author})",
+    privateCommit: "[Private Repository] {count} commits ({date})",
+    release: "New release: {repo} {tag} - {name}",
+    privateRelease: "[Private Repository] new release",
+    activity: "GitHub Activity: {contributors} contributors, {push} push, {pr} PR{privateNote}",
+    privateNote: " (private: {count})",
+    privateContent: "Private repository - details hidden",
+    privateLabel: "[Private Repository]",
+    unit: {
+      repos: "repos",
+      kb: "KB",
+      commits: "commits",
+      release: "release",
+      events: "events",
+    },
+  },
+  ko: {
+    orgStats: "Mossland GitHub: {public} public, {private} private repos, {stars} stars",
+    repoUpdate: "{repo} 저장소 업데이트",
+    privateRepoUpdate: "[Private Repository] 저장소 업데이트 ({size} KB)",
+    commit: "[{repo}] {message} (by {author})",
+    privateCommit: "[Private Repository] 커밋 {count}건 ({date})",
+    release: "새 릴리즈: {repo} {tag} - {name}",
+    privateRelease: "[Private Repository] 새 릴리즈 출시",
+    activity: "GitHub 활동: {contributors}명 기여자, {push} push, {pr} PR{privateNote}",
+    privateNote: " (private: {count}건)",
+    privateContent: "비공개 저장소 - 상세 내용 비공개",
+    privateLabel: "[Private Repository]",
+    unit: {
+      repos: "repos",
+      kb: "KB",
+      commits: "commits",
+      release: "release",
+      events: "events",
+    },
+  },
+};
 
 const GITHUB_API = "https://api.github.com";
 const DEFAULT_ORG = "mossland";
@@ -73,9 +117,7 @@ interface Event {
   payload: Record<string, unknown>;
 }
 
-// Private repo masking constants
-const PRIVATE_REPO_LABEL = "[Private Repository]";
-const PRIVATE_CONTENT_NOTICE = "비공개 저장소 - 상세 내용 비공개";
+// Private repo masking constants are now in translations
 
 export class GitHubAdapter extends BaseAdapter {
   readonly name = "GitHubAdapter";
@@ -92,6 +134,7 @@ export class GitHubAdapter extends BaseAdapter {
       organization: config.organization || DEFAULT_ORG,
       repositories: config.repositories || [],
       token: config.token,
+      language: config.language || "en",
     };
     this.headers = {
       Accept: "application/vnd.github.v3+json",
@@ -100,6 +143,10 @@ export class GitHubAdapter extends BaseAdapter {
     if (config.token) {
       this.headers["Authorization"] = `Bearer ${config.token}`;
     }
+  }
+
+  private get t() {
+    return translations[this.config.language || "en"];
   }
 
   async fetch(): Promise<RawSignal[]> {
@@ -134,7 +181,7 @@ export class GitHubAdapter extends BaseAdapter {
   }
 
   private maskRepoName(repoName: string, isPrivate: boolean): string {
-    return isPrivate ? PRIVATE_REPO_LABEL : repoName;
+    return isPrivate ? this.t.privateLabel : repoName;
   }
 
   private async fetchRepositories(): Promise<RawSignal[]> {
@@ -197,8 +244,8 @@ export class GitHubAdapter extends BaseAdapter {
                 // Public: show all details
                 // Private: only show statistical info
                 repoName: this.maskRepoName(repo.name, repo.private),
-                fullName: repo.private ? PRIVATE_REPO_LABEL : repo.full_name,
-                description: repo.private ? PRIVATE_CONTENT_NOTICE : repo.description,
+                fullName: repo.private ? this.t.privateLabel : repo.full_name,
+                description: repo.private ? this.t.privateContent : repo.description,
                 url: repo.private ? undefined : repo.html_url,
                 pushedAt: repo.pushed_at,
                 stars: repo.private ? undefined : repo.stargazers_count,
@@ -250,7 +297,7 @@ export class GitHubAdapter extends BaseAdapter {
               repoName: this.maskRepoName(repoName, isPrivate),
               sha: isPrivate ? recentCommit.sha.slice(0, 7) : recentCommit.sha,
               // Private: hide commit message and author name
-              message: isPrivate ? PRIVATE_CONTENT_NOTICE : recentCommit.commit.message.split("\n")[0],
+              message: isPrivate ? this.t.privateContent : recentCommit.commit.message.split("\n")[0],
               author: isPrivate ? undefined : recentCommit.commit.author.name,
               authorLogin: isPrivate ? undefined : recentCommit.author?.login,
               date: recentCommit.commit.author.date,
@@ -310,7 +357,7 @@ export class GitHubAdapter extends BaseAdapter {
                 repoName: this.maskRepoName(repo.name, isPrivate),
                 // Private: hide release details
                 tagName: isPrivate ? undefined : release.tag_name,
-                name: isPrivate ? PRIVATE_CONTENT_NOTICE : release.name,
+                name: isPrivate ? this.t.privateContent : release.name,
                 body: isPrivate ? undefined : release.body?.slice(0, 200),
                 url: isPrivate ? undefined : release.html_url,
                 publishedAt: release.published_at,
@@ -383,7 +430,7 @@ export class GitHubAdapter extends BaseAdapter {
             // Summary for private repos (no details)
             privateRepoSummary: privateEventCount > 0 ? {
               eventCount: privateEventCount,
-              notice: PRIVATE_CONTENT_NOTICE,
+              notice: this.t.privateContent,
             } : undefined,
           },
           {
@@ -423,32 +470,34 @@ export class GitHubAdapter extends BaseAdapter {
       size?: number;
     };
 
+    const t = this.t;
     let category: string;
     let severity: NormalizedSignal["severity"];
     let value: number;
     let unit: string;
     let description: string;
 
-    const privateLabel = data.isPrivate ? " [Private]" : "";
-
     switch (data.type) {
       case "org_stats":
         category = "github_overview";
         severity = "low";
         value = data.repoCount || 0;
-        unit = "repos";
-        description = `Mossland GitHub: ${data.publicRepoCount || 0} public, ${data.privateRepoCount || 0} private repos, ${data.totalStars} stars`;
+        unit = t.unit.repos;
+        description = t.orgStats
+          .replace("{public}", String(data.publicRepoCount || 0))
+          .replace("{private}", String(data.privateRepoCount || 0))
+          .replace("{stars}", String(data.totalStars || 0));
         break;
 
       case "repo_update":
         category = "github_push";
         severity = "medium";
         value = data.size || 0;
-        unit = "KB";
+        unit = t.unit.kb;
         if (data.isPrivate) {
-          description = `${PRIVATE_REPO_LABEL} 저장소 업데이트 (${data.size?.toLocaleString() || 0} KB)`;
+          description = t.privateRepoUpdate.replace("{size}", (data.size?.toLocaleString() || "0"));
         } else {
-          description = `${data.repoName} 저장소 업데이트`;
+          description = t.repoUpdate.replace("{repo}", data.repoName || "");
         }
         break;
 
@@ -456,12 +505,17 @@ export class GitHubAdapter extends BaseAdapter {
         category = "github_commit";
         severity = "low";
         value = data.commitCount || 1;
-        unit = "commits";
+        unit = t.unit.commits;
         if (data.isPrivate) {
-          const dateStr = data.date ? new Date(data.date).toLocaleString("ko-KR") : "";
-          description = `${PRIVATE_REPO_LABEL} 커밋 ${data.commitCount}건 (${dateStr})`;
+          const dateStr = data.date ? new Date(data.date).toLocaleString(this.config.language === "ko" ? "ko-KR" : "en-US") : "";
+          description = t.privateCommit
+            .replace("{count}", String(data.commitCount || 1))
+            .replace("{date}", dateStr);
         } else {
-          description = `[${data.repoName}] ${data.message} (by ${data.author})`;
+          description = t.commit
+            .replace("{repo}", data.repoName || "")
+            .replace("{message}", data.message || "")
+            .replace("{author}", data.author || "");
         }
         break;
 
@@ -469,11 +523,14 @@ export class GitHubAdapter extends BaseAdapter {
         category = "github_release";
         severity = "high";
         value = 1;
-        unit = "release";
+        unit = t.unit.release;
         if (data.isPrivate) {
-          description = `${PRIVATE_REPO_LABEL} 새 릴리즈 출시`;
+          description = t.privateRelease;
         } else {
-          description = `새 릴리즈: ${data.repoName} ${data.tagName} - ${data.name}`;
+          description = t.release
+            .replace("{repo}", data.repoName || "")
+            .replace("{tag}", data.tagName || "")
+            .replace("{name}", data.name || "");
         }
         break;
 
@@ -481,11 +538,17 @@ export class GitHubAdapter extends BaseAdapter {
         category = "github_activity";
         severity = (data.totalEvents || 0) > 20 ? "medium" : "low";
         value = data.totalEvents || 0;
-        unit = "events";
+        unit = t.unit.events;
         const pushCount = data.eventBreakdown?.["PushEvent"] || 0;
         const prCount = data.eventBreakdown?.["PullRequestEvent"] || 0;
-        const privateNote = data.privateEventCount ? ` (private: ${data.privateEventCount}건)` : "";
-        description = `GitHub 활동: ${data.uniqueContributors}명 기여자, ${pushCount} push, ${prCount} PR${privateNote}`;
+        const privateNote = data.privateEventCount
+          ? t.privateNote.replace("{count}", String(data.privateEventCount))
+          : "";
+        description = t.activity
+          .replace("{contributors}", String(data.uniqueContributors || 0))
+          .replace("{push}", String(pushCount))
+          .replace("{pr}", String(prCount))
+          .replace("{privateNote}", privateNote);
         break;
 
       default:

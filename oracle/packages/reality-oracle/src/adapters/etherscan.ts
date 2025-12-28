@@ -6,7 +6,33 @@ export interface EtherscanAdapterConfig {
   mocTokenAddress?: string;
   foundationAddress?: string;
   minTransferAmount?: number; // Minimum MOC for whale alert
+  language?: "en" | "ko";
 }
+
+const translations = {
+  en: {
+    whaleAlert: "Whale Alert: {amount} MOC large transfer",
+    transfer: "{amount} MOC transfer ({from} → {to})",
+    gasPrice: "Ethereum Gas: {safe}/{propose}/{fast} Gwei (Safe/Standard/Fast)",
+    foundationActivity: "Mossland Foundation wallet activity: {amount} ETH ({fn})",
+    unit: {
+      moc: "MOC",
+      gwei: "Gwei",
+      eth: "ETH",
+    },
+  },
+  ko: {
+    whaleAlert: "Whale Alert: {amount} MOC 대규모 전송",
+    transfer: "{amount} MOC 전송 ({from} → {to})",
+    gasPrice: "이더리움 가스비: {safe}/{propose}/{fast} Gwei (Safe/Standard/Fast)",
+    foundationActivity: "Mossland Foundation 지갑 활동: {amount} ETH ({fn})",
+    unit: {
+      moc: "MOC",
+      gwei: "Gwei",
+      eth: "ETH",
+    },
+  },
+};
 
 const DEFAULT_MOC_TOKEN = "0x8bbfe65e31b348cd823c62e02ad8c19a84dd0dab";
 const DEFAULT_FOUNDATION = "0xcda8f4d40dbeaecf7ee7221f9e9b35d565ca2ad2";
@@ -61,6 +87,7 @@ export class EtherscanAdapter extends BaseAdapter {
       mocTokenAddress: config.mocTokenAddress || DEFAULT_MOC_TOKEN,
       foundationAddress: config.foundationAddress || DEFAULT_FOUNDATION,
       minTransferAmount: config.minTransferAmount || 100000, // 100K MOC
+      language: config.language || "en",
     };
   }
 
@@ -221,6 +248,7 @@ export class EtherscanAdapter extends BaseAdapter {
       functionName?: string;
     };
 
+    const t = translations[this.config.language || "en"];
     let category: string;
     let severity: NormalizedSignal["severity"];
     let value: number;
@@ -232,26 +260,34 @@ export class EtherscanAdapter extends BaseAdapter {
         category = data.isFoundationTx ? "foundation_transfer" : "moc_transfer";
         severity = data.isWhaleAlert ? "critical" : data.amount! > 200000 ? "high" : "medium";
         value = data.amount!;
-        unit = "MOC";
+        unit = t.unit.moc;
         description = data.isWhaleAlert
-          ? `Whale Alert: ${this.formatNumber(data.amount!)} MOC 대규모 전송`
-          : `${this.formatNumber(data.amount!)} MOC 전송 (${this.shortenAddress(data.from!)} → ${this.shortenAddress(data.to!)})`;
+          ? t.whaleAlert.replace("{amount}", this.formatNumber(data.amount!))
+          : t.transfer
+              .replace("{amount}", this.formatNumber(data.amount!))
+              .replace("{from}", this.shortenAddress(data.from!))
+              .replace("{to}", this.shortenAddress(data.to!));
         break;
 
       case "gas_price":
         category = "network_gas";
         severity = data.fastGas! > 100 ? "high" : data.fastGas! > 50 ? "medium" : "low";
         value = data.proposeGas!;
-        unit = "Gwei";
-        description = `이더리움 가스비: ${data.safeGas}/${data.proposeGas}/${data.fastGas} Gwei (Safe/Standard/Fast)`;
+        unit = t.unit.gwei;
+        description = t.gasPrice
+          .replace("{safe}", String(data.safeGas))
+          .replace("{propose}", String(data.proposeGas))
+          .replace("{fast}", String(data.fastGas));
         break;
 
       case "foundation_activity":
         category = "foundation_activity";
         severity = data.valueEth! > 1 ? "high" : "medium";
         value = data.valueEth!;
-        unit = "ETH";
-        description = `Mossland Foundation 지갑 활동: ${data.valueEth?.toFixed(4)} ETH (${data.functionName})`;
+        unit = t.unit.eth;
+        description = t.foundationActivity
+          .replace("{amount}", data.valueEth?.toFixed(4) || "0")
+          .replace("{fn}", data.functionName || "Unknown");
         break;
 
       default:

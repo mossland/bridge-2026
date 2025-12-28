@@ -39,3 +39,4 @@ CREATE TABLE IF NOT EXISTS issue_groups (
 CREATE INDEX IF NOT EXISTS idx_issue_groups_priority_score ON issue_groups(priority_score);
 CREATE INDEX IF NOT EXISTS idx_issue_groups_issue_ids ON issue_groups USING GIN(issue_ids);
 
+

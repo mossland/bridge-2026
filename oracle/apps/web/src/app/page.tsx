@@ -2,8 +2,9 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { useAccount } from "wagmi";
+import { useTranslations } from "next-intl";
 import { useMOCBalance, useMOCInfo, useVotingPower } from "@/hooks/useMOC";
-import { formatMOC, formatNumber } from "@/lib/utils";
+import { formatMOC } from "@/lib/utils";
 import { api } from "@/lib/api";
 import {
   Activity,
@@ -13,7 +14,6 @@ import {
   TrendingUp,
   Users,
   Wallet,
-  Loader2,
 } from "lucide-react";
 import Link from "next/link";
 
@@ -57,7 +57,8 @@ function StatCard({
 }
 
 function WalletInfo() {
-  const { address, isConnected } = useAccount();
+  const t = useTranslations();
+  const { isConnected } = useAccount();
   const { balance, isLoading: balanceLoading } = useMOCBalance();
   const { decimals } = useMOCInfo();
   const { formatted: votingPower } = useVotingPower();
@@ -70,9 +71,9 @@ function WalletInfo() {
             <Wallet className="w-8 h-8" />
           </div>
           <div>
-            <h3 className="text-lg font-semibold">지갑을 연결하세요</h3>
+            <h3 className="text-lg font-semibold">{t("header.connectWallet")}</h3>
             <p className="text-moss-100">
-              MOC 토큰으로 거버넌스에 참여할 수 있습니다
+              {t("common.tagline")}
             </p>
           </div>
         </div>
@@ -91,7 +92,7 @@ function WalletInfo() {
             <h3 className="text-lg font-semibold">My Voting Power</h3>
             <p className="text-2xl font-bold mt-1">
               {balanceLoading
-                ? "Loading..."
+                ? t("common.loading")
                 : balance && decimals
                   ? formatMOC(balance, decimals)
                   : "0 MOC"}
@@ -99,7 +100,7 @@ function WalletInfo() {
           </div>
         </div>
         <div className="text-right">
-          <p className="text-sm text-moss-100">투표권</p>
+          <p className="text-sm text-moss-100">{t("proposals.votes")}</p>
           <p className="text-xl font-semibold">{votingPower} votes</p>
         </div>
       </div>
@@ -108,41 +109,42 @@ function WalletInfo() {
 }
 
 function RecentActivity() {
-  // Mock data - in production, this would come from the API
+  const t = useTranslations();
+
   const activities = [
     {
       id: 1,
       type: "signal",
-      title: "참여율 이상 감지",
-      time: "5분 전",
+      titleKey: "signals.title",
+      time: "5m",
       severity: "high",
     },
     {
       id: 2,
       type: "proposal",
-      title: "커뮤니티 이벤트 예산 승인",
-      time: "1시간 전",
+      titleKey: "proposals.title",
+      time: "1h",
       status: "passed",
     },
     {
       id: 3,
       type: "issue",
-      title: "가스비 최적화 필요",
-      time: "3시간 전",
+      titleKey: "issues.title",
+      time: "3h",
       severity: "medium",
     },
     {
       id: 4,
       type: "outcome",
-      title: "Q4 마케팅 캠페인 KPI 달성",
-      time: "1일 전",
+      titleKey: "outcomes.title",
+      time: "1d",
       success: true,
     },
   ];
 
   return (
     <div className="card">
-      <h3 className="text-lg font-semibold text-gray-900 mb-4">최근 활동</h3>
+      <h3 className="text-lg font-semibold text-gray-900 mb-4">{t("dashboard.recentSignals")}</h3>
       <div className="space-y-4">
         {activities.map((activity) => (
           <div
@@ -164,7 +166,7 @@ function RecentActivity() {
               )}
               <div>
                 <p className="text-sm font-medium text-gray-900">
-                  {activity.title}
+                  {t(activity.titleKey)}
                 </p>
                 <p className="text-xs text-gray-500">{activity.time}</p>
               </div>
@@ -177,16 +179,16 @@ function RecentActivity() {
                     : "bg-yellow-50 text-yellow-700"
                 }`}
               >
-                {activity.severity}
+                {t(`signals.severityLevels.${activity.severity}`)}
               </span>
             )}
             {activity.status && (
               <span className="badge bg-green-50 text-green-700">
-                {activity.status}
+                {t(`proposals.${activity.status}`)}
               </span>
             )}
             {activity.success !== undefined && (
-              <span className="badge bg-green-50 text-green-700">성공</span>
+              <span className="badge bg-green-50 text-green-700">{t("outcomes.verified")}</span>
             )}
           </div>
         ))}
@@ -196,19 +198,21 @@ function RecentActivity() {
 }
 
 export default function Dashboard() {
+  const t = useTranslations();
+
   const { data: stats, isLoading: statsLoading } = useQuery({
     queryKey: ["stats"],
     queryFn: () => api.getStats(),
-    refetchInterval: 30000, // Refresh every 30 seconds
+    refetchInterval: 30000,
   });
 
   return (
     <div className="space-y-8">
       {/* Header */}
       <div>
-        <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
+        <h1 className="text-3xl font-bold text-gray-900">{t("dashboard.title")}</h1>
         <p className="mt-1 text-gray-500">
-          BRIDGE 2026 거버넌스 현황을 한눈에 확인하세요
+          {t("dashboard.subtitle")}
         </p>
       </div>
 
@@ -218,25 +222,25 @@ export default function Dashboard() {
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <StatCard
-          title="Active Signals"
+          title={t("dashboard.totalSignals")}
           value={statsLoading ? "..." : stats?.signals.normalizedSignalCount ?? 0}
           icon={Activity}
           href="/signals"
         />
         <StatCard
-          title="Open Issues"
+          title={t("issues.title")}
           value={statsLoading ? "..." : stats?.proposals.active ?? 0}
           icon={AlertTriangle}
           href="/issues"
         />
         <StatCard
-          title="Active Proposals"
+          title={t("dashboard.activeProposals")}
           value={statsLoading ? "..." : stats?.proposals.active ?? 0}
           icon={Vote}
           href="/proposals"
         />
         <StatCard
-          title="Success Rate"
+          title={t("dashboard.successRate")}
           value={statsLoading ? "..." : `${((stats?.outcomes.successRate ?? 0) * 100).toFixed(0)}%`}
           icon={Users}
           href="/outcomes"
@@ -250,20 +254,20 @@ export default function Dashboard() {
         {/* Quick Actions */}
         <div className="card">
           <h3 className="text-lg font-semibold text-gray-900 mb-4">
-            빠른 실행
+            {t("common.view")}
           </h3>
           <div className="grid grid-cols-2 gap-4">
             <Link href="/signals" className="btn-secondary text-center">
-              신호 확인
+              {t("nav.signals")}
             </Link>
             <Link href="/issues" className="btn-secondary text-center">
-              이슈 탐색
+              {t("nav.issues")}
             </Link>
             <Link href="/proposals" className="btn-primary text-center">
-              제안 투표
+              {t("nav.proposals")}
             </Link>
             <Link href="/delegation" className="btn-secondary text-center">
-              위임 설정
+              {t("nav.delegation")}
             </Link>
           </div>
         </div>

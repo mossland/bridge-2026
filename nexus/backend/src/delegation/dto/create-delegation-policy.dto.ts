@@ -68,3 +68,4 @@ export class CreateDelegationPolicyDto {
   max_votes_per_day?: number;
 }
 
+

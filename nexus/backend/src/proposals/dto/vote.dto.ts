@@ -12,3 +12,4 @@ export class VoteDto {
   txHash?: string;
 }
 
+

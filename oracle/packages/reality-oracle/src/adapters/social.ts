@@ -5,7 +5,39 @@ export interface SocialAdapterConfig {
   mediumRssUrl?: string;
   twitterBearerToken?: string;
   twitterUsername?: string;
+  language?: "en" | "ko";
 }
+
+const translations = {
+  en: {
+    newBlog: "New blog",
+    blogActivity: "Medium blog: {count} posts in last week",
+    twitterProfile: "@{username}: {followers} followers",
+    newTweet: "New tweet: \"{text}...\" ({likes} likes)",
+    twitterEngagement: "Twitter engagement: {total} interactions (avg {avg}/tweet)",
+    unit: {
+      post: "post",
+      postsWeek: "posts/week",
+      followers: "followers",
+      engagement: "engagement",
+      engagements: "engagements",
+    },
+  },
+  ko: {
+    newBlog: "새 블로그",
+    blogActivity: "Medium 블로그: 최근 1주 {count}건 게시",
+    twitterProfile: "@{username}: {followers} 팔로워",
+    newTweet: "새 트윗: \"{text}...\" ({likes} likes)",
+    twitterEngagement: "Twitter 참여도: 최근 {total}회 상호작용 (평균 {avg}/tweet)",
+    unit: {
+      post: "post",
+      postsWeek: "posts/week",
+      followers: "followers",
+      engagement: "engagement",
+      engagements: "engagements",
+    },
+  },
+};
 
 const DEFAULT_MEDIUM_RSS = "https://medium.com/feed/mossland-blog";
 const DEFAULT_TWITTER_USER = "TheMossland";
@@ -72,7 +104,12 @@ export class SocialAdapter extends BaseAdapter {
       mediumRssUrl: config.mediumRssUrl || DEFAULT_MEDIUM_RSS,
       twitterBearerToken: config.twitterBearerToken,
       twitterUsername: config.twitterUsername || DEFAULT_TWITTER_USER,
+      language: config.language || "en",
     };
+  }
+
+  private get t() {
+    return translations[this.config.language || "en"];
   }
 
   async fetch(): Promise<RawSignal[]> {
@@ -297,6 +334,7 @@ export class SocialAdapter extends BaseAdapter {
       url?: string;
     };
 
+    const t = this.t;
     let category: string;
     let severity: NormalizedSignal["severity"];
     let value: number;
@@ -308,40 +346,46 @@ export class SocialAdapter extends BaseAdapter {
         category = "medium_post";
         severity = "high";
         value = 1;
-        unit = "post";
-        description = `새 블로그: ${data.title}`;
+        unit = t.unit.post;
+        description = `${t.newBlog}: ${data.title}`;
         break;
 
       case "blog_activity":
         category = "medium_activity";
         severity = (data.recentPosts || 0) > 2 ? "medium" : "low";
         value = data.recentPosts || 0;
-        unit = "posts/week";
-        description = `Medium 블로그: 최근 1주 ${data.recentPosts}건 게시`;
+        unit = t.unit.postsWeek;
+        description = t.blogActivity.replace("{count}", String(data.recentPosts || 0));
         break;
 
       case "twitter_profile":
         category = "twitter_profile";
         severity = "low";
         value = data.followers || 0;
-        unit = "followers";
-        description = `@${data.username}: ${this.formatNumber(data.followers || 0)} 팔로워`;
+        unit = t.unit.followers;
+        description = t.twitterProfile
+          .replace("{username}", data.username || "")
+          .replace("{followers}", this.formatNumber(data.followers || 0));
         break;
 
       case "new_tweet":
         category = "twitter_tweet";
         severity = (data.likes || 0) > 100 ? "high" : "medium";
         value = (data.likes || 0) + (data.retweets || 0);
-        unit = "engagement";
-        description = `새 트윗: "${data.text?.slice(0, 50)}..." (${data.likes} likes)`;
+        unit = t.unit.engagement;
+        description = t.newTweet
+          .replace("{text}", data.text?.slice(0, 50) || "")
+          .replace("{likes}", String(data.likes || 0));
         break;
 
       case "twitter_engagement":
         category = "twitter_engagement";
         severity = (data.avgEngagement || 0) > 50 ? "medium" : "low";
         value = data.totalEngagement || 0;
-        unit = "engagements";
-        description = `Twitter 참여도: 최근 ${data.totalEngagement}회 상호작용 (평균 ${(data.avgEngagement || 0).toFixed(1)}/tweet)`;
+        unit = t.unit.engagements;
+        description = t.twitterEngagement
+          .replace("{total}", String(data.totalEngagement || 0))
+          .replace("{avg}", (data.avgEngagement || 0).toFixed(1));
         break;
 
       default:

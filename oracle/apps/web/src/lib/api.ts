@@ -40,9 +40,21 @@ class APIClient {
   }
 
   // Issues
+  async getIssues(status?: string) {
+    const query = status ? `?status=${status}` : "";
+    return this.fetch<{ issues: any[]; count: number }>(`/api/issues${query}`);
+  }
+
   async detectIssues() {
-    return this.fetch<{ issues: any[]; count: number }>("/api/issues/detect", {
+    return this.fetch<{ detected: number; saved: number; issues: any[]; count: number }>("/api/issues/detect", {
       method: "POST",
+    });
+  }
+
+  async updateIssue(id: string, data: { status?: string; decisionPacket?: any }) {
+    return this.fetch<{ issue: any }>(`/api/issues/${id}`, {
+      method: "PATCH",
+      body: JSON.stringify(data),
     });
   }
 

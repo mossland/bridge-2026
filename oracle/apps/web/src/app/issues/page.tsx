@@ -1,9 +1,12 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { AlertTriangle, MessageSquare, Users, Shield, Coins, Code, ChevronRight, Bot, Loader2, RefreshCw } from "lucide-react";
-import { cn, getSeverityColor, timeAgo } from "@/lib/utils";
+import { useAccount } from "wagmi";
+import { useTranslations } from "next-intl";
+import { AlertTriangle, MessageSquare, Users, Shield, Coins, Code, ChevronRight, Bot, Loader2, RefreshCw, CheckCircle } from "lucide-react";
+import { cn, timeAgo } from "@/lib/utils";
 import { api } from "@/lib/api";
 
 const priorityColors: Record<string, string> = {
@@ -13,27 +16,11 @@ const priorityColors: Record<string, string> = {
   low: "bg-green-100 text-green-700",
 };
 
-const statusLabels: Record<string, string> = {
-  detected: "탐지됨",
-  analyzing: "분석 중",
-  deliberating: "심의 중",
-  voting: "투표 중",
-  executed: "실행됨",
-  closed: "종료",
-};
-
 const categoryIcons: Record<string, React.ElementType> = {
   governance: Users,
   security: Shield,
   treasury: Coins,
   product: Code,
-};
-
-const roleLabels: Record<string, string> = {
-  risk: "Risk",
-  treasury: "Treasury",
-  community: "Community",
-  product: "Product",
 };
 
 const stanceColors: Record<string, string> = {
@@ -45,13 +32,24 @@ const stanceColors: Record<string, string> = {
 };
 
 export default function IssuesPage() {
+  const t = useTranslations();
+  const router = useRouter();
   const queryClient = useQueryClient();
+  const { address } = useAccount();
   const [selectedIssue, setSelectedIssue] = useState<any>(null);
+  const [proposalCreated, setProposalCreated] = useState(false);
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, refetch } = useQuery({
     queryKey: ["issues"],
-    queryFn: () => api.detectIssues(),
+    queryFn: () => api.getIssues(),
     refetchInterval: 30000,
+  });
+
+  const detectMutation = useMutation({
+    mutationFn: () => api.detectIssues(),
+    onSuccess: () => {
+      refetch();
+    },
   });
 
   const deliberateMutation = useMutation({
@@ -63,22 +61,51 @@ export default function IssuesPage() {
     },
   });
 
+  const createProposalMutation = useMutation({
+    mutationFn: ({ decisionPacket, proposer }: { decisionPacket: any; proposer: string }) =>
+      api.createProposal(decisionPacket, proposer),
+    onSuccess: () => {
+      setProposalCreated(true);
+      queryClient.invalidateQueries({ queryKey: ["proposals"] });
+      // Update issue status
+      if (selectedIssue) {
+        api.updateIssue(selectedIssue.id, { status: "proposed" });
+        refetch();
+      }
+      setTimeout(() => {
+        router.push("/proposals");
+      }, 1500);
+    },
+  });
+
   const issues = data?.issues ?? [];
+
+  const roleLabels: Record<string, string> = {
+    risk: "Risk",
+    treasury: t("delegation.treasury"),
+    community: t("delegation.community"),
+    product: "Product",
+  };
 
   return (
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Issues</h1>
-          <p className="mt-1 text-gray-500">AI가 탐지한 이슈 및 에이전트 심의 현황</p>
+          <h1 className="text-3xl font-bold text-gray-900">{t("issues.title")}</h1>
+          <p className="mt-1 text-gray-500">{t("issues.subtitle")}</p>
         </div>
         <button
-          onClick={() => queryClient.invalidateQueries({ queryKey: ["issues"] })}
-          className="btn-secondary flex items-center space-x-2"
+          onClick={() => detectMutation.mutate()}
+          disabled={isLoading || detectMutation.isPending}
+          className="btn-primary flex items-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          <RefreshCw className="w-4 h-4" />
-          <span>이슈 탐지</span>
+          {detectMutation.isPending ? (
+            <Loader2 className="w-4 h-4 animate-spin" />
+          ) : (
+            <RefreshCw className="w-4 h-4" />
+          )}
+          <span>{detectMutation.isPending ? t("issues.detecting") : t("issues.detect")}</span>
         </button>
       </div>
 
@@ -92,7 +119,8 @@ export default function IssuesPage() {
           ) : issues.length === 0 ? (
             <div className="card text-center py-12 text-gray-500">
               <AlertTriangle className="w-12 h-12 mx-auto mb-3 text-gray-300" />
-              <p>탐지된 이슈가 없습니다</p>
+              <p>{t("issues.noIssues")}</p>
+              <p className="text-sm">{t("issues.systemNormal")}</p>
             </div>
           ) : (
             issues.map((issue: any) => {
@@ -118,26 +146,25 @@ export default function IssuesPage() {
                             {(issue.priority || "medium").toUpperCase()}
                           </span>
                           <span className="badge bg-blue-50 text-blue-600">
-                            {statusLabels[issue.status] || issue.status}
+                            {issue.status}
                           </span>
                         </div>
                         <h3 className="mt-2 font-semibold text-gray-900">{issue.title}</h3>
                         <p className="mt-1 text-sm text-gray-500 line-clamp-2">{issue.description}</p>
                         <div className="mt-2 flex items-center space-x-4 text-xs text-gray-400">
                           <span>{timeAgo(new Date(issue.detectedAt))}</span>
-                          <span>신호 {issue.signalCount || 0}개</span>
+                          <span>{t("issues.relatedSignals")}: {issue.signalCount || 0}</span>
                         </div>
                       </div>
                     </div>
                     <ChevronRight className="w-5 h-5 text-gray-400" />
                   </div>
 
-                  {/* Agent opinions preview */}
                   {agentOpinions.length > 0 && (
                     <div className="mt-4 pt-4 border-t border-gray-100">
                       <div className="flex items-center space-x-2">
                         <Bot className="w-4 h-4 text-moss-600" />
-                        <span className="text-sm text-gray-500">에이전트 의견:</span>
+                        <span className="text-sm text-gray-500">{t("issues.agentDeliberation")}:</span>
                         {agentOpinions.map((opinion: any) => (
                           <div key={opinion.role} className="flex items-center space-x-1">
                             <div className={cn("w-2 h-2 rounded-full", stanceColors[opinion.stance] || "bg-gray-300")} />
@@ -162,7 +189,7 @@ export default function IssuesPage() {
               {!selectedIssue.decisionPacket && (!selectedIssue.agentOpinions || selectedIssue.agentOpinions.length === 0) ? (
                 <div className="text-center py-8 text-gray-500">
                   <Bot className="w-12 h-12 mx-auto mb-3 text-gray-300" />
-                  <p>아직 에이전트 심의가 진행되지 않았습니다</p>
+                  <p>{t("issues.agentDeliberation")}</p>
                   <button
                     onClick={() => deliberateMutation.mutate(selectedIssue)}
                     disabled={deliberateMutation.isPending}
@@ -171,15 +198,14 @@ export default function IssuesPage() {
                     {deliberateMutation.isPending ? (
                       <Loader2 className="w-4 h-4 animate-spin inline mr-2" />
                     ) : null}
-                    심의 시작
+                    {deliberateMutation.isPending ? t("issues.deliberating") : t("issues.deliberate")}
                   </button>
                 </div>
               ) : (
                 <div className="space-y-4">
-                  {/* Agent Opinions */}
                   {selectedIssue.decisionPacket?.agentOpinions && (
                     <div>
-                      <h4 className="text-sm font-medium text-gray-500 mb-2">에이전트 의견</h4>
+                      <h4 className="text-sm font-medium text-gray-500 mb-2">{t("issues.agentDeliberation")}</h4>
                       <div className="space-y-2">
                         {selectedIssue.decisionPacket.agentOpinions.map((opinion: any) => (
                           <div key={opinion.agentRole} className="flex items-center justify-between p-2 bg-gray-50 rounded-lg">
@@ -188,7 +214,7 @@ export default function IssuesPage() {
                               <span className="text-sm font-medium">{roleLabels[opinion.agentRole] || opinion.agentRole}</span>
                             </div>
                             <span className="text-sm text-gray-500">
-                              {Math.round((opinion.confidence || 0) * 100)}% 확신
+                              {Math.round((opinion.confidence || 0) * 100)}% {t("issues.confidence")}
                             </span>
                           </div>
                         ))}
@@ -196,34 +222,91 @@ export default function IssuesPage() {
                     </div>
                   )}
 
-                  {/* Recommendation */}
                   {selectedIssue.decisionPacket?.recommendation && (
                     <div>
-                      <h4 className="text-sm font-medium text-gray-500 mb-2">권고안</h4>
-                      <p className="text-sm text-gray-700 p-3 bg-moss-50 rounded-lg">
-                        {selectedIssue.decisionPacket.recommendation}
-                      </p>
+                      <h4 className="text-sm font-medium text-gray-500 mb-2">{t("issues.recommendation")}</h4>
+                      <div className="text-sm text-gray-700 p-3 bg-moss-50 rounded-lg space-y-2">
+                        {typeof selectedIssue.decisionPacket.recommendation === "string" ? (
+                          <p>{selectedIssue.decisionPacket.recommendation}</p>
+                        ) : (
+                          <>
+                            <div>
+                              <span className="font-medium">{t("issues.action")}:</span>{" "}
+                              {selectedIssue.decisionPacket.recommendation.action}
+                            </div>
+                            <div>
+                              <span className="font-medium">{t("issues.rationale")}:</span>{" "}
+                              {selectedIssue.decisionPacket.recommendation.rationale}
+                            </div>
+                            <div>
+                              <span className="font-medium">{t("issues.expectedOutcome")}:</span>{" "}
+                              {selectedIssue.decisionPacket.recommendation.expectedOutcome}
+                            </div>
+                          </>
+                        )}
+                      </div>
                     </div>
                   )}
 
-                  {/* Risks */}
                   {selectedIssue.decisionPacket?.risks && selectedIssue.decisionPacket.risks.length > 0 && (
                     <div>
-                      <h4 className="text-sm font-medium text-gray-500 mb-2">리스크</h4>
-                      <ul className="text-sm text-gray-700 p-3 bg-red-50 rounded-lg list-disc list-inside">
-                        {selectedIssue.decisionPacket.risks.map((risk: string, i: number) => (
-                          <li key={i}>{risk}</li>
+                      <h4 className="text-sm font-medium text-gray-500 mb-2">{t("issues.risks")}</h4>
+                      <div className="space-y-2">
+                        {selectedIssue.decisionPacket.risks.map((risk: any, i: number) => (
+                          <div key={i} className="text-sm p-3 bg-red-50 rounded-lg">
+                            {typeof risk === "string" ? (
+                              <p>{risk}</p>
+                            ) : (
+                              <>
+                                <p className="font-medium text-red-700">{risk.description}</p>
+                                <div className="mt-1 flex flex-wrap gap-2 text-xs">
+                                  <span className="px-2 py-0.5 bg-red-100 rounded">
+                                    {t("issues.likelihood")}: {risk.likelihood}
+                                  </span>
+                                  <span className="px-2 py-0.5 bg-red-100 rounded">
+                                    {t("issues.impact")}: {risk.impact}
+                                  </span>
+                                </div>
+                                {risk.mitigation && (
+                                  <p className="mt-1 text-gray-600">
+                                    <span className="font-medium">{t("issues.mitigation")}:</span> {risk.mitigation}
+                                  </p>
+                                )}
+                              </>
+                            )}
+                          </div>
                         ))}
-                      </ul>
+                      </div>
                     </div>
                   )}
 
-                  {/* Actions */}
                   <div className="pt-4 border-t border-gray-100 space-y-2">
-                    <button className="btn-primary w-full">
-                      <MessageSquare className="w-4 h-4 mr-2 inline" />
-                      제안서 생성
-                    </button>
+                    {proposalCreated ? (
+                      <div className="flex items-center justify-center space-x-2 py-3 text-green-600">
+                        <CheckCircle className="w-5 h-5" />
+                        <span>{t("issues.proposalCreated")}</span>
+                      </div>
+                    ) : (
+                      <button
+                        onClick={() => {
+                          if (selectedIssue?.decisionPacket) {
+                            createProposalMutation.mutate({
+                              decisionPacket: selectedIssue.decisionPacket,
+                              proposer: address || "anonymous",
+                            });
+                          }
+                        }}
+                        disabled={createProposalMutation.isPending || !selectedIssue?.decisionPacket}
+                        className="btn-primary w-full disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        {createProposalMutation.isPending ? (
+                          <Loader2 className="w-4 h-4 mr-2 inline animate-spin" />
+                        ) : (
+                          <MessageSquare className="w-4 h-4 mr-2 inline" />
+                        )}
+                        {createProposalMutation.isPending ? t("proposals.creating") : t("issues.createProposal")}
+                      </button>
+                    )}
                   </div>
                 </div>
               )}
@@ -231,7 +314,7 @@ export default function IssuesPage() {
           ) : (
             <div className="card text-center py-12 text-gray-500">
               <AlertTriangle className="w-12 h-12 mx-auto mb-3 text-gray-300" />
-              <p>이슈를 선택하면 상세 정보가 표시됩니다</p>
+              <p>{t("common.view")}</p>
             </div>
           )}
         </div>

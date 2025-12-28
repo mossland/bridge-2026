@@ -67,3 +67,4 @@ CREATE TABLE IF NOT EXISTS proposal_results (
     calculated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
 );
 
+

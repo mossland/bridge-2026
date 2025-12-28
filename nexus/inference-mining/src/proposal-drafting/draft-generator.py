@@ -136,3 +136,4 @@ class ProposalDraftGenerator:
 # 싱글톤 인스턴스
 proposal_draft_generator = ProposalDraftGenerator()
 
+

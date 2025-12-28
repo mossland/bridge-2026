@@ -16,3 +16,4 @@ CREATE EXTENSION IF NOT EXISTS "pg_trgm";  -- 텍스트 검색용
 -- 초기 데이터 (필요한 경우)
 -- 예: 기본 설정, 시스템 사용자 등
 
+

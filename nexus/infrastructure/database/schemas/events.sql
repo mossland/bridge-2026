@@ -19,3 +19,4 @@ CREATE INDEX IF NOT EXISTS idx_events_data_gin ON events USING GIN(data);
 -- 이벤트 타입별 파티셔닝을 위한 함수 (선택사항)
 -- CREATE INDEX IF NOT EXISTS idx_events_type_timestamp ON events(type, timestamp);
 
+

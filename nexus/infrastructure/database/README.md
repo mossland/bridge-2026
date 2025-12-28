@@ -40,3 +40,4 @@ psql -U postgres -d bridge2026 -f migrations/001_initial_schema.sql
 - `uuid-ossp`: UUID 생성용
 - `pg_trgm`: 텍스트 검색 및 유사도 계산용
 
+

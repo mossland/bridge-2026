@@ -21,3 +21,4 @@ CREATE INDEX IF NOT EXISTS idx_signals_metadata_timestamp ON signals((metadata->
 CREATE INDEX IF NOT EXISTS idx_signals_data_gin ON signals USING GIN(data);
 CREATE INDEX IF NOT EXISTS idx_signals_metadata_gin ON signals USING GIN(metadata);
 
+

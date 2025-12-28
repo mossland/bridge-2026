@@ -55,3 +55,4 @@ Human Governance에서 제안이 통과되면, Atomic Actuation이 실행을 담
 - **오프체인**: Node.js/TypeScript, GitHub API, 외부 서비스 API
 - **원자성 보장**: 트랜잭션 관리, 보상 트랜잭션
 
+
