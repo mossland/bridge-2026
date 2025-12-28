@@ -3,9 +3,11 @@
 import { useState } from "react";
 import { useAccount } from "wagmi";
 import { useTranslations } from "next-intl";
-import { Users, Bot, Shield, Coins, Code, Plus, Trash2, Check, AlertTriangle } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { Users, Bot, Shield, Coins, Code, Plus, Trash2, Check, AlertTriangle, Loader2 } from "lucide-react";
+import { cn, timeAgo } from "@/lib/utils";
 import { useVotingPower } from "@/hooks/useMOC";
+import { api } from "@/lib/api";
 
 const agents = [
   { id: "risk-agent", nameKey: "security", icon: Shield, reputation: 87, totalDelegated: 1250000, recentAccuracy: 92 },
@@ -14,16 +16,11 @@ const agents = [
   { id: "product-agent", nameKey: "technical", icon: Code, reputation: 78, totalDelegated: 720000, recentAccuracy: 85 },
 ];
 
-const mockDelegations = [
-  { id: "1", agentId: "community-agent", categories: ["governance", "community"], maxBudget: 10000, excludeEmergency: true, vetoEnabled: true, active: true },
-];
-
-function DelegationForm({ onClose, t }: { onClose: () => void; t: any }) {
+function DelegationForm({ onClose, t, address, onSuccess }: { onClose: () => void; t: any; address: string; onSuccess: () => void }) {
   const [selectedAgent, setSelectedAgent] = useState<string | null>(null);
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [maxBudget, setMaxBudget] = useState<number>(0);
-  const [excludeEmergency, setExcludeEmergency] = useState(true);
-  const [vetoEnabled, setVetoEnabled] = useState(true);
+  const [expiresInDays, setExpiresInDays] = useState<number>(30);
 
   const categories = [
     { id: "governance", label: "Governance" },
@@ -33,10 +30,24 @@ function DelegationForm({ onClose, t }: { onClose: () => void; t: any }) {
     { id: "community", label: t("delegation.community") },
   ];
 
+  const createMutation = useMutation({
+    mutationFn: async () => {
+      const conditions = [
+        { field: "decisionPacket.issue.category", operator: "in" as const, value: selectedCategories },
+        ...(maxBudget > 0 ? [{ field: "decisionPacket.budget", operator: "lte" as const, value: maxBudget }] : []),
+      ];
+      const expiresAt = new Date(Date.now() + expiresInDays * 24 * 60 * 60 * 1000).toISOString();
+      return api.createDelegation(address, selectedAgent!, conditions, expiresAt);
+    },
+    onSuccess: () => {
+      onSuccess();
+      onClose();
+    },
+  });
+
   const handleSubmit = () => {
     if (!selectedAgent || selectedCategories.length === 0) return;
-    alert("Delegation set");
-    onClose();
+    createMutation.mutate();
   };
 
   return (
@@ -109,13 +120,19 @@ function DelegationForm({ onClose, t }: { onClose: () => void; t: any }) {
         </div>
 
         <div className="flex space-x-3">
-          <button onClick={onClose} className="btn-secondary flex-1">{t("common.cancel")}</button>
+          <button onClick={onClose} className="btn-secondary flex-1" disabled={createMutation.isPending}>
+            {t("common.cancel")}
+          </button>
           <button
             onClick={handleSubmit}
-            disabled={!selectedAgent || selectedCategories.length === 0}
-            className="btn-primary flex-1 disabled:opacity-50"
+            disabled={!selectedAgent || selectedCategories.length === 0 || createMutation.isPending}
+            className="btn-primary flex-1 disabled:opacity-50 flex items-center justify-center"
           >
-            {t("common.save")}
+            {createMutation.isPending ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              t("common.save")
+            )}
           </button>
         </div>
       </div>
@@ -125,12 +142,28 @@ function DelegationForm({ onClose, t }: { onClose: () => void; t: any }) {
 
 export default function DelegationPage() {
   const t = useTranslations();
-  const { isConnected } = useAccount();
+  const queryClient = useQueryClient();
+  const { isConnected, address } = useAccount();
   const { formatted: votingPower } = useVotingPower();
-  const [delegations, setDelegations] = useState(mockDelegations);
   const [showForm, setShowForm] = useState(false);
 
-  const totalDelegated = delegations.filter(d => d.active).length > 0 ? votingPower : "0";
+  const { data: delegationsData, isLoading } = useQuery({
+    queryKey: ["delegations", address],
+    queryFn: () => api.getDelegations(address),
+    enabled: !!address,
+    refetchInterval: 30000,
+  });
+
+  const revokeMutation = useMutation({
+    mutationFn: (id: string) => api.revokeDelegation(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["delegations"] });
+    },
+  });
+
+  const delegations = delegationsData?.policies ?? [];
+  const activeDelegations = delegations.filter((d: any) => d.active);
+  const totalDelegated = activeDelegations.length > 0 ? votingPower : "0";
 
   return (
     <div className="space-y-6">
@@ -158,7 +191,9 @@ export default function DelegationPage() {
         </div>
         <div className="card">
           <p className="text-sm text-gray-500">{t("delegation.active")}</p>
-          <p className="text-2xl font-bold text-gray-900">{delegations.filter(d => d.active).length}</p>
+          <p className="text-2xl font-bold text-gray-900">
+            {isLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : activeDelegations.length}
+          </p>
         </div>
       </div>
 
@@ -167,7 +202,7 @@ export default function DelegationPage() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           {agents.map((agent) => {
             const Icon = agent.icon;
-            const userDelegation = delegations.find(d => d.agentId === agent.id && d.active);
+            const userDelegation = delegations.find((d: any) => d.delegate === agent.id && d.active);
             return (
               <div key={agent.id} className="card">
                 <div className="flex items-center space-x-3 mb-3">
@@ -199,41 +234,76 @@ export default function DelegationPage() {
 
       <div>
         <h2 className="text-lg font-semibold text-gray-900 mb-4">{t("delegation.title")}</h2>
-        {delegations.length === 0 ? (
+        {isLoading ? (
+          <div className="card flex items-center justify-center py-12">
+            <Loader2 className="w-8 h-8 animate-spin text-moss-600" />
+          </div>
+        ) : delegations.length === 0 ? (
           <div className="card text-center py-12 text-gray-500">
             <Bot className="w-12 h-12 mx-auto mb-3 text-gray-300" />
             <p>{t("delegation.noPolicies")}</p>
-            <button onClick={() => setShowForm(true)} className="btn-primary mt-4">
-              {t("delegation.createFirst")}
-            </button>
+            {isConnected && (
+              <button onClick={() => setShowForm(true)} className="btn-primary mt-4">
+                {t("delegation.createFirst")}
+              </button>
+            )}
           </div>
         ) : (
           <div className="space-y-4">
-            {delegations.map((delegation) => {
-              const agent = agents.find(a => a.id === delegation.agentId);
-              if (!agent) return null;
-              const Icon = agent.icon;
+            {delegations.map((delegation: any) => {
+              const agent = agents.find(a => a.id === delegation.delegate);
+              const Icon = agent?.icon || Bot;
+              const isActive = delegation.active;
+              const categories = delegation.conditions
+                ?.filter((c: any) => c.type === "category")
+                ?.flatMap((c: any) => c.value) ?? [];
+
               return (
-                <div key={delegation.id} className="card flex items-center justify-between">
+                <div
+                  key={delegation.id}
+                  className={cn("card flex items-center justify-between", !isActive && "opacity-60")}
+                >
                   <div className="flex items-center space-x-4">
-                    <div className="p-2 bg-moss-50 rounded-lg">
-                      <Icon className="w-6 h-6 text-moss-600" />
+                    <div className={cn("p-2 rounded-lg", isActive ? "bg-moss-50" : "bg-gray-100")}>
+                      <Icon className={cn("w-6 h-6", isActive ? "text-moss-600" : "text-gray-400")} />
                     </div>
                     <div>
-                      <h3 className="font-semibold text-gray-900">{t(`delegation.${agent.nameKey}`)}</h3>
+                      <div className="flex items-center space-x-2">
+                        <h3 className="font-semibold text-gray-900">
+                          {agent ? t(`delegation.${agent.nameKey}`) : delegation.delegate}
+                        </h3>
+                        <span className={cn(
+                          "badge text-xs",
+                          isActive ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-600"
+                        )}>
+                          {isActive ? t("delegation.active") : t("delegation.inactive")}
+                        </span>
+                      </div>
                       <div className="flex items-center space-x-2 mt-1">
-                        {delegation.categories.map(cat => (
+                        {categories.map((cat: string) => (
                           <span key={cat} className="badge bg-gray-100 text-gray-600 text-xs">{cat}</span>
                         ))}
+                        {delegation.expiresAt && (
+                          <span className="text-xs text-gray-400">
+                            {t("common.expires")}: {timeAgo(new Date(delegation.expiresAt))}
+                          </span>
+                        )}
                       </div>
                     </div>
                   </div>
-                  <button
-                    onClick={() => setDelegations(prev => prev.filter(d => d.id !== delegation.id))}
-                    className="p-2 text-red-500 hover:bg-red-50 rounded-lg"
-                  >
-                    <Trash2 className="w-5 h-5" />
-                  </button>
+                  {isActive && (
+                    <button
+                      onClick={() => revokeMutation.mutate(delegation.id)}
+                      disabled={revokeMutation.isPending}
+                      className="p-2 text-red-500 hover:bg-red-50 rounded-lg disabled:opacity-50"
+                    >
+                      {revokeMutation.isPending ? (
+                        <Loader2 className="w-5 h-5 animate-spin" />
+                      ) : (
+                        <Trash2 className="w-5 h-5" />
+                      )}
+                    </button>
+                  )}
                 </div>
               );
             })}
@@ -241,7 +311,14 @@ export default function DelegationPage() {
         )}
       </div>
 
-      {showForm && <DelegationForm onClose={() => setShowForm(false)} t={t} />}
+      {showForm && address && (
+        <DelegationForm
+          onClose={() => setShowForm(false)}
+          t={t}
+          address={address}
+          onSuccess={() => queryClient.invalidateQueries({ queryKey: ["delegations"] })}
+        />
+      )}
     </div>
   );
 }

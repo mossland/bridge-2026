@@ -292,6 +292,88 @@ async function testFullWorkflow() {
   console.log("--- Full Workflow Complete ---\n");
 }
 
+// ==================== DELEGATION TESTS ====================
+
+async function testGetDelegations() {
+  const { response, data } = await fetchJson("/api/delegations");
+  assert(response.ok, "Get delegations should return 200");
+  assert(Array.isArray(data.policies), "Policies should be an array");
+  assert(typeof data.count === "number", "Count should be a number");
+}
+
+async function testCreateDelegation() {
+  const { response, data } = await fetchJson("/api/delegations", {
+    method: "POST",
+    body: JSON.stringify({
+      delegator: `0xDELEGATOR_${Date.now()}`,
+      delegate: "risk-agent",
+      conditions: [
+        { field: "decisionPacket.issue.category", operator: "in", value: ["governance", "security"] },
+        { field: "decisionPacket.budget", operator: "lte", value: 10000 },
+      ],
+      expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+    }),
+  });
+
+  assert(response.ok, "Create delegation should return 201");
+  assert(data.policy, "Should return a policy");
+  assert(data.policy.id, "Policy should have an ID");
+  assert(data.policy.active === true, "Policy should be active");
+
+  return data.policy.id;
+}
+
+async function testGetDelegation(policyId: string) {
+  const { response, data } = await fetchJson(`/api/delegations/${policyId}`);
+  assert(response.ok, "Get delegation should return 200");
+  assert(data.policy, "Should return a policy");
+  assert(data.policy.id === policyId, "Policy ID should match");
+}
+
+async function testRevokeDelegation(policyId: string) {
+  const { response, data } = await fetchJson(`/api/delegations/${policyId}`, {
+    method: "DELETE",
+  });
+
+  assert(response.ok, "Revoke delegation should return 200");
+  assert(data.message === "Delegation revoked", "Should return revoke message");
+  assert(data.policy.active === false, "Policy should be inactive");
+}
+
+async function testCheckDelegation() {
+  // First create a delegation
+  const { data: createData } = await fetchJson("/api/delegations", {
+    method: "POST",
+    body: JSON.stringify({
+      delegator: `0xCHECK_DELEGATOR_${Date.now()}`,
+      delegate: "community-agent",
+      conditions: [{ field: "decisionPacket.issue.category", operator: "in", value: ["governance"] }],
+    }),
+  });
+
+  // Create a proposal to check against
+  const { data: proposalData } = await fetchJson("/api/proposals", {
+    method: "POST",
+    body: JSON.stringify({
+      decisionPacket: {
+        id: `e2e-check-${Date.now()}`,
+        issueId: "test-issue",
+        recommendation: { action: "Test", rationale: "Testing", expectedOutcome: "Success" },
+        risks: [],
+      },
+      proposer: "0xE2E_CHECK_TEST",
+    }),
+  });
+
+  // Check delegation
+  const { response, data } = await fetchJson(
+    `/api/delegations/check/${proposalData.proposal.id}?delegator=${createData.policy.delegator}`
+  );
+
+  assert(response.ok, "Check delegation should return 200");
+  assert(typeof data.shouldDelegate === "boolean", "Should return shouldDelegate boolean");
+}
+
 // ==================== RUN TESTS ====================
 
 async function main() {
@@ -367,6 +449,22 @@ async function main() {
     // Execute
     await testExecuteProposal(execProposalId);
   });
+
+  // Delegation Tests
+  let policyId: string | undefined;
+  await runTest("Get Delegations", testGetDelegations);
+  await runTest("Create Delegation", async () => {
+    policyId = await testCreateDelegation();
+  });
+  if (policyId) {
+    await runTest("Get Delegation", async () => {
+      await testGetDelegation(policyId!);
+    });
+    await runTest("Revoke Delegation", async () => {
+      await testRevokeDelegation(policyId!);
+    });
+  }
+  await runTest("Check Delegation", testCheckDelegation);
 
   // Full Workflow Test
   await runTest("Full Workflow", testFullWorkflow);

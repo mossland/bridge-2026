@@ -138,6 +138,35 @@ class APIClient {
     return this.fetch<{ leaderboard: any[] }>(`/api/trust/leaderboard/${type}${query}`);
   }
 
+  // Delegations
+  async getDelegations(delegator?: string) {
+    const query = delegator ? `?delegator=${delegator}` : "";
+    return this.fetch<{ policies: any[]; count: number }>(`/api/delegations${query}`);
+  }
+
+  async createDelegation(delegator: string, delegate: string, conditions?: any[], expiresAt?: string) {
+    return this.fetch<{ policy: any }>("/api/delegations", {
+      method: "POST",
+      body: JSON.stringify({ delegator, delegate, conditions, expiresAt }),
+    });
+  }
+
+  async getDelegation(id: string) {
+    return this.fetch<{ policy: any }>(`/api/delegations/${id}`);
+  }
+
+  async revokeDelegation(id: string) {
+    return this.fetch<{ message: string; policy: any }>(`/api/delegations/${id}`, {
+      method: "DELETE",
+    });
+  }
+
+  async checkDelegation(proposalId: string, delegator: string) {
+    return this.fetch<{ shouldDelegate: boolean; delegate?: string; policy?: any }>(
+      `/api/delegations/check/${proposalId}?delegator=${delegator}`
+    );
+  }
+
   // Stats
   async getStats() {
     return this.fetch<{

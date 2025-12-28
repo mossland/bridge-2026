@@ -19,7 +19,8 @@
     "all": "All",
     "none": "None",
     "yes": "Yes",
-    "no": "No"
+    "no": "No",
+    "expires": "Expires"
   },
   "nav": {
     "dashboard": "Dashboard",
@@ -142,6 +143,7 @@
     "treasury": "Treasury",
     "technical": "Technical",
     "community": "Community",
+    "security": "Security",
     "minAmount": "Minimum Amount",
     "maxAmount": "Maximum Amount",
     "riskLevel": "Risk Level",

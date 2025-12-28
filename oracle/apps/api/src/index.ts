@@ -596,6 +596,95 @@ app.get("/api/trust/leaderboard/:type", (req, res) => {
   }
 });
 
+// Delegation endpoints
+app.get("/api/delegations", (req, res) => {
+  try {
+    const delegator = req.query.delegator as string;
+    if (delegator) {
+      const policies = delegationManager.getPoliciesForDelegator(delegator);
+      res.json({ policies, count: policies.length });
+    } else {
+      // Return empty for now since we don't have a list all method
+      res.json({ policies: [], count: 0 });
+    }
+  } catch (error) {
+    res.status(500).json({ error: "Failed to fetch delegations" });
+  }
+});
+
+app.post("/api/delegations", (req, res) => {
+  try {
+    const { delegator, delegate, conditions, expiresAt } = req.body;
+    if (!delegator || !delegate) {
+      return res.status(400).json({ error: "delegator and delegate are required" });
+    }
+
+    const policy = delegationManager.createPolicy(
+      delegator,
+      delegate,
+      conditions || [],
+      expiresAt ? new Date(expiresAt) : undefined
+    );
+
+    res.status(201).json({ policy });
+  } catch (error) {
+    res.status(500).json({ error: "Failed to create delegation" });
+  }
+});
+
+// Check delegation for a specific proposal (must be before :id route)
+app.get("/api/delegations/check/:proposalId", (req, res) => {
+  try {
+    const delegator = req.query.delegator as string;
+    if (!delegator) {
+      return res.status(400).json({ error: "delegator query parameter is required" });
+    }
+
+    const proposal = votingSystem.getProposal(req.params.proposalId);
+    if (!proposal) {
+      return res.status(404).json({ error: "Proposal not found" });
+    }
+
+    const delegation = delegationManager.shouldAutoDelegate(delegator, proposal);
+    if (delegation) {
+      res.json({
+        shouldDelegate: true,
+        delegate: delegation.delegate,
+        policy: delegation.policy,
+      });
+    } else {
+      res.json({ shouldDelegate: false });
+    }
+  } catch (error) {
+    res.status(500).json({ error: "Failed to check delegation" });
+  }
+});
+
+app.get("/api/delegations/:id", (req, res) => {
+  try {
+    const policy = delegationManager.getPolicy(req.params.id);
+    if (!policy) {
+      return res.status(404).json({ error: "Delegation not found" });
+    }
+    res.json({ policy });
+  } catch (error) {
+    res.status(500).json({ error: "Failed to fetch delegation" });
+  }
+});
+
+app.delete("/api/delegations/:id", (req, res) => {
+  try {
+    const policy = delegationManager.getPolicy(req.params.id);
+    if (!policy) {
+      return res.status(404).json({ error: "Delegation not found" });
+    }
+    delegationManager.revokePolicy(req.params.id);
+    res.json({ message: "Delegation revoked", policy: { ...policy, active: false } });
+  } catch (error) {
+    res.status(500).json({ error: "Failed to revoke delegation" });
+  }
+});
+
 // System stats
 app.get("/api/stats", (req, res) => {
   try {
