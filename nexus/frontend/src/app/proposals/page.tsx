@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { ProposalCard } from '@/components/proposal-card';
 import { useState, useEffect } from 'react';
 import type { Proposal } from '@bridge-2026/shared';
+import { api } from '@/lib/api';
 
 export default function ProposalsPage() {
   const [proposals, setProposals] = useState<Proposal[]>([]);
@@ -12,10 +13,24 @@ export default function ProposalsPage() {
   const [filter, setFilter] = useState<'all' | 'active' | 'passed' | 'rejected'>('all');
 
   useEffect(() => {
-    // TODO: 실제 API 호출
-    // fetchProposals().then(setProposals).finally(() => setLoading(false));
+    // API 호출
+    const statusMap: Record<string, string> = {
+      all: '',
+      active: 'active',
+      passed: 'passed',
+      rejected: 'rejected',
+    };
     
-    // 임시 데이터
+    api.getProposals({ status: statusMap[filter], limit: 100 })
+      .then(result => setProposals(result.proposals))
+      .catch(error => {
+        console.error('Error fetching proposals:', error);
+        // 에러 시 빈 배열
+        setProposals([]);
+      })
+      .finally(() => setLoading(false));
+    
+    // 임시 데이터 (API 실패 시 fallback)
     const mockProposals: Proposal[] = [
       {
         id: '1',

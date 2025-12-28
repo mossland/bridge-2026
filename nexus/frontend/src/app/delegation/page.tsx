@@ -3,9 +3,11 @@
 import { ConnectButton } from '@rainbow-me/rainbowkit';
 import Link from 'next/link';
 import { DelegationPolicyCard } from '@/components/delegation-policy-card';
+import { DelegationPolicyForm } from '@/components/delegation-policy-form';
 import { useState, useEffect } from 'react';
 import type { DelegationPolicy } from '@bridge-2026/shared';
 import { useAccount } from 'wagmi';
+import { api } from '@/lib/api';
 
 export default function DelegationPage() {
   const { address, isConnected } = useAccount();
@@ -21,10 +23,17 @@ export default function DelegationPage() {
       return;
     }
 
-    // TODO: 실제 API 호출
-    // fetchDelegationPolicies(address).then(setPolicies).finally(() => setLoading(false));
+    // API 호출
+    api.getDelegationPolicies(address)
+      .then(setPolicies)
+      .catch(error => {
+        console.error('Error fetching delegation policies:', error);
+        // 에러 시 빈 배열
+        setPolicies([]);
+      })
+      .finally(() => setLoading(false));
     
-    // 임시 데이터
+    // 임시 데이터 (API 실패 시 fallback)
     const mockPolicies: Array<DelegationPolicy & { id: string; createdAt: number }> = [
       {
         id: 'policy-1',
@@ -48,9 +57,18 @@ export default function DelegationPage() {
     }, 500);
   }, [address, isConnected]);
 
-  const handleDelete = (policyId: string) => {
-    // TODO: 실제 API 호출
-    setPolicies(policies.filter(p => p.id !== policyId));
+  const handleDelete = async (policyId: string) => {
+    try {
+      const result = await api.deleteDelegationPolicy(policyId);
+      if (result.success) {
+        setPolicies(policies.filter(p => p.id !== policyId));
+      } else {
+        alert('위임 정책 삭제에 실패했습니다.');
+      }
+    } catch (error) {
+      console.error('Error deleting policy:', error);
+      alert('위임 정책 삭제 중 오류가 발생했습니다.');
+    }
   };
 
   return (
@@ -100,15 +118,18 @@ export default function DelegationPage() {
                 <h3 className="text-xl font-semibold text-moss-700 mb-4">
                   새 위임 정책 생성
                 </h3>
-                <p className="text-gray-600 mb-4">
-                  위임 정책 생성 폼은 현재 개발 중입니다.
-                </p>
-                <button
-                  onClick={() => setShowCreateForm(false)}
-                  className="px-4 py-2 text-gray-600 hover:text-gray-700 border border-gray-300 rounded-lg"
-                >
-                  취소
-                </button>
+                <DelegationPolicyForm
+                  onSuccess={() => {
+                    setShowCreateForm(false);
+                    // 정책 목록 새로고침
+                    if (address) {
+                      api.getDelegationPolicies(address)
+                        .then(setPolicies)
+                        .catch(console.error);
+                    }
+                  }}
+                  onCancel={() => setShowCreateForm(false)}
+                />
               </div>
             )}
 

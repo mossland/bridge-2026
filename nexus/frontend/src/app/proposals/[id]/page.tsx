@@ -6,6 +6,7 @@ import { useParams } from 'next/navigation';
 import { ProposalDetail } from '@/components/proposal-detail';
 import { useState, useEffect } from 'react';
 import type { Proposal, DecisionPacket } from '@bridge-2026/shared';
+import { api } from '@/lib/api';
 
 export default function ProposalDetailPage() {
   const params = useParams();
@@ -15,11 +16,24 @@ export default function ProposalDetailPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // TODO: 실제 API 호출
-    // fetchProposal(proposalId).then(setProposal);
-    // fetchDecisionPacket(proposal.decisionPacketId).then(setDecisionPacket);
+    // API 호출
+    Promise.all([
+      api.getProposal(proposalId),
+      // TODO: Decision Packet API 추가
+    ])
+      .then(([proposalData]) => {
+        setProposal(proposalData);
+        // Decision Packet은 임시로 null
+        setDecisionPacket(null);
+      })
+      .catch(error => {
+        console.error('Error fetching proposal:', error);
+        // 에러 시 null
+        setProposal(null);
+      })
+      .finally(() => setLoading(false));
     
-    // 임시 데이터
+    // 임시 데이터 (API 실패 시 fallback)
     const mockProposal: Proposal = {
       id: proposalId,
       title: '[AI Assisted] 거버넌스 참여율 개선 방안',

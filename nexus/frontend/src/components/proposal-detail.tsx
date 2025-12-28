@@ -4,6 +4,7 @@ import { Proposal, DecisionPacket } from '@bridge-2026/shared';
 import { formatDate, formatPercent } from '@bridge-2026/shared/utils';
 import { useAccount } from 'wagmi';
 import { useState } from 'react';
+import { api } from '@/lib/api';
 
 interface ProposalDetailProps {
   proposal: Proposal;
@@ -25,12 +26,20 @@ export function ProposalDetail({ proposal, decisionPacket }: ProposalDetailProps
     setIsVoting(true);
     
     try {
-      // TODO: 실제 투표 API 호출
-      // await voteOnProposal(proposal.id, choice);
+      // API 호출
+      const result = await api.castVote(proposal.id, {
+        voterAddress: address!,
+        choice,
+      });
       
-      // 임시: 성공 시뮬레이션
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      alert(`투표가 완료되었습니다: ${choice === 'yes' ? '찬성' : choice === 'no' ? '반대' : '기권'}`);
+      if (result.success) {
+        alert(`투표가 완료되었습니다: ${choice === 'yes' ? '찬성' : choice === 'no' ? '반대' : '기권'}`);
+        if (result.txHash) {
+          console.log('Transaction hash:', result.txHash);
+        }
+      } else {
+        alert('투표에 실패했습니다.');
+      }
     } catch (error) {
       console.error('Vote error:', error);
       alert('투표 중 오류가 발생했습니다.');

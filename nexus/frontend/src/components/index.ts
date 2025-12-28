@@ -8,5 +8,6 @@ export * from './proposal-card';
 export * from './proposal-detail';
 export * from './signal-card';
 export * from './delegation-policy-card';
+export * from './delegation-policy-form';
 export * from './outcome-card';
 

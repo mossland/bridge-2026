@@ -12,10 +12,17 @@ export default function RealityFeedPage() {
   const [filter, setFilter] = useState<'all' | 'onchain' | 'community' | 'anomaly'>('all');
 
   useEffect(() => {
-    // TODO: 실제 API 호출
-    // fetchSignals().then(setSignals).finally(() => setLoading(false));
+    // API 호출
+    api.getSignals({ limit: 100 })
+      .then(result => setSignals(result.signals))
+      .catch(error => {
+        console.error('Error fetching signals:', error);
+        // 에러 시 빈 배열
+        setSignals([]);
+      })
+      .finally(() => setLoading(false));
     
-    // 임시 데이터
+    // 임시 데이터 (API 실패 시 fallback)
     const mockSignals: Signal[] = [
       {
         id: 'sig-1',

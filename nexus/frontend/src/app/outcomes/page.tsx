@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { OutcomeCard } from '@/components/outcome-card';
 import { useState, useEffect } from 'react';
 import type { Outcome } from '@bridge-2026/shared';
+import { api } from '@/lib/api';
 
 export default function OutcomesPage() {
   const [outcomes, setOutcomes] = useState<Outcome[]>([]);
@@ -12,10 +13,23 @@ export default function OutcomesPage() {
   const [filter, setFilter] = useState<'all' | 'success' | 'failure'>('all');
 
   useEffect(() => {
-    // TODO: 실제 API 호출
-    // fetchOutcomes().then(setOutcomes).finally(() => setLoading(false));
+    // API 호출
+    const statusMap: Record<string, string> = {
+      all: '',
+      success: 'success',
+      failure: 'failure',
+    };
     
-    // 임시 데이터
+    api.getOutcomes({ status: statusMap[filter], limit: 100 })
+      .then(result => setOutcomes(result.outcomes))
+      .catch(error => {
+        console.error('Error fetching outcomes:', error);
+        // 에러 시 빈 배열
+        setOutcomes([]);
+      })
+      .finally(() => setLoading(false));
+    
+    // 임시 데이터 (API 실패 시 fallback)
     const mockOutcomes: Outcome[] = [
       {
         id: 'outcome-1',

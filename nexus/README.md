@@ -124,6 +124,13 @@ Reality Oracle → Inference Mining → Agentic Consensus → Human Governance �
     - Wagmi + RainbowKit 연동
     - 주요 페이지: Reality Feed, Proposals, Delegation, Outcomes
     - Moss Coin (ERC-20) 컨트랙트 주소 설정
+    - 백엔드 API 연동
+
+18. **백엔드 API 서버** (`backend/`)
+    - NestJS 기반 RESTful API
+    - 주요 엔드포인트: Signals, Proposals, Delegation, Outcomes
+    - Moss Coin 잔액 조회 (투표 가중치 계산)
+    - 블록체인 서비스 (Ethers.js)
 
 ### 📋 다음 단계
 
