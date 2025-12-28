@@ -2,9 +2,10 @@
 
 import { Proposal, DecisionPacket } from '@bridge-2026/shared';
 import { formatDate, formatPercent } from '@bridge-2026/shared/utils';
-import { useAccount } from 'wagmi';
+import { useAccount, usePublicClient, useWalletClient } from 'wagmi';
 import { useState } from 'react';
 import { api } from '@/lib/api';
+import { castVoteTransaction, waitForTransaction } from '@/lib/blockchain';
 
 interface ProposalDetailProps {
   proposal: Proposal;
@@ -13,6 +14,8 @@ interface ProposalDetailProps {
 
 export function ProposalDetail({ proposal, decisionPacket }: ProposalDetailProps) {
   const { address, isConnected } = useAccount();
+  const publicClient = usePublicClient();
+  const { data: walletClient } = useWalletClient();
   const [voteChoice, setVoteChoice] = useState<'yes' | 'no' | 'abstain' | null>(null);
   const [isVoting, setIsVoting] = useState(false);
 
@@ -23,19 +26,47 @@ export function ProposalDetail({ proposal, decisionPacket }: ProposalDetailProps
     if (!canVote) return;
     
     setVoteChoice(choice);
+    if (!address || !walletClient || !publicClient) {
+      alert('지갑을 연결해주세요.');
+      return;
+    }
+
     setIsVoting(true);
     
     try {
-      // API 호출
+      // 블록체인 트랜잭션 서명 및 전송 (선택적)
+      let txHash: `0x${string}` | undefined;
+      
+      try {
+        txHash = await castVoteTransaction(
+          proposal.id,
+          choice,
+          walletClient,
+          address as `0x${string}`
+        );
+        
+        // 트랜잭션 확인 대기
+        await waitForTransaction(txHash, publicClient);
+      } catch (txError: any) {
+        // 거버넌스 컨트랙트가 배포되지 않은 경우 API만 사용
+        if (txError.message?.includes('not deployed')) {
+          console.log('Governance contract not deployed, using API only');
+        } else {
+          console.error('Transaction error:', txError);
+        }
+      }
+
+      // API 호출 (트랜잭션 해시 포함)
       const result = await api.castVote(proposal.id, {
-        voterAddress: address!,
+        voterAddress: address,
         choice,
+        txHash: txHash || undefined,
       });
       
       if (result.success) {
         alert(`투표가 완료되었습니다: ${choice === 'yes' ? '찬성' : choice === 'no' ? '반대' : '기권'}`);
-        if (result.txHash) {
-          console.log('Transaction hash:', result.txHash);
+        if (result.txHash || txHash) {
+          console.log('Transaction hash:', result.txHash || txHash);
         }
       } else {
         alert('투표에 실패했습니다.');

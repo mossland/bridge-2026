@@ -1,32 +1,39 @@
 import { Injectable } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
 import type { Signal } from '@bridge-2026/shared';
+import { SignalEntity } from '../entities/signal.entity';
 import { realityOracle, OnChainCollector, CheckInCollector } from '@bridge-2026/reality-oracle';
 
 @Injectable()
 export class SignalsService {
-  private signals: Signal[] = [];
+  constructor(
+    @InjectRepository(SignalEntity)
+    private signalRepository: Repository<SignalEntity>,
+  ) {}
 
   async getSignals(options: {
     sourceType?: string;
     limit: number;
     offset: number;
   }): Promise<{ signals: Signal[]; total: number }> {
-    let filtered = [...this.signals];
+    const queryBuilder = this.signalRepository.createQueryBuilder('signal');
 
     if (options.sourceType) {
-      filtered = filtered.filter(
-        s => s.metadata.sourceType === options.sourceType
-      );
+      queryBuilder.where('signal.metadata_sourceType = :sourceType', {
+        sourceType: options.sourceType,
+      });
     }
 
-    // 최신순 정렬
-    filtered.sort((a, b) => b.metadata.timestamp - a.metadata.timestamp);
+    const total = await queryBuilder.getCount();
 
-    const total = filtered.length;
-    const signals = filtered.slice(
-      options.offset,
-      options.offset + options.limit
-    );
+    const entities = await queryBuilder
+      .orderBy('signal.metadata_timestamp', 'DESC')
+      .skip(options.offset)
+      .take(options.limit)
+      .getMany();
+
+    const signals = entities.map(e => e.toSignal());
 
     return { signals, total };
   }
@@ -47,13 +54,19 @@ export class SignalsService {
     // 신호 수집
     const collectedSignals = await realityOracle.collectSignals();
     
-    // 메모리에 저장 (실제로는 데이터베이스에 저장)
-    this.signals.push(...collectedSignals);
-    
-    // 최대 1000개만 유지
-    if (this.signals.length > 1000) {
-      this.signals = this.signals.slice(-1000);
-    }
+    // 데이터베이스에 저장
+    const entities = collectedSignals.map(signal => {
+      const entity = new SignalEntity();
+      entity.metadata_sourceType = signal.metadata.sourceType;
+      entity.metadata_timestamp = signal.metadata.timestamp;
+      entity.payload = signal.payload;
+      entity.attestation = signal.attestation || null;
+      entity.tags = signal.tags || [];
+      entity.hash = null; // TODO: 해시 계산
+      return entity;
+    });
+
+    await this.signalRepository.save(entities);
 
     return { collected: collectedSignals.length };
   }

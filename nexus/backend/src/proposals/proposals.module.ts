@@ -1,10 +1,16 @@
 import { Module } from '@nestjs/common';
+import { TypeOrmModule } from '@nestjs/typeorm';
 import { ProposalsController } from './proposals.controller';
 import { ProposalsService } from './proposals.service';
 import { BlockchainModule } from '../blockchain/blockchain.module';
+import { ProposalEntity } from '../entities/proposal.entity';
+import { VoteEntity } from '../entities/vote.entity';
 
 @Module({
-  imports: [BlockchainModule],
+  imports: [
+    TypeOrmModule.forFeature([ProposalEntity, VoteEntity]),
+    BlockchainModule,
+  ],
   controllers: [ProposalsController],
   providers: [ProposalsService],
   exports: [ProposalsService],
