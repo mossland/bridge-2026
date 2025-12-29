@@ -78,6 +78,8 @@
     "systemNormal": "System operating normally",
     "deliberate": "Start Deliberation",
     "deliberating": "Deliberating...",
+    "startDebate": "Start Debate",
+    "debating": "Debating...",
     "type": "Type",
     "confidence": "Confidence",
     "detectedAt": "Detected At",
@@ -94,6 +96,23 @@
     "alternatives": "Alternatives",
     "createProposal": "Create Proposal",
     "proposalCreated": "Proposal created! Redirecting..."
+  },
+  "debate": {
+    "title": "Agent Debate",
+    "inProgress": "In Progress",
+    "completed": "Completed",
+    "round": "Round",
+    "messages": "messages",
+    "initialPositions": "Initial Positions",
+    "positionChanges": "Position Changes",
+    "keyInsights": "Key Insights",
+    "unresolvedPoints": "Unresolved Points",
+    "processing": "Agents are discussing...",
+    "finalConsensus": "Final Consensus",
+    "roundsCompleted": "Rounds completed",
+    "highConsensus": "High Consensus",
+    "moderateConsensus": "Moderate Consensus",
+    "lowConsensus": "Low Consensus"
   },
   "proposals": {
     "title": "Governance Proposals",

@@ -5,9 +5,13 @@ import {
   DetectedIssue,
   AgentContext,
   ProposalType,
+  DebateSession,
+  DiscussionRound,
+  DiscussionMessage,
   generateId,
   now,
 } from "@oracle/core";
+import { BaseAgent } from "./agents/base.js";
 import { LLMClient, LLMConfig } from "./llm/index.js";
 
 export interface ModeratorConfig extends LLMConfig {}
@@ -79,6 +83,273 @@ Be objective, thorough, and actionable.`;
     }
 
     return this.synthesizeRuleBased(issue, opinions);
+  }
+
+  /**
+   * Conduct a multi-round debate on an issue
+   * @param issue The issue to debate
+   * @param context Additional context for agents
+   * @param maxRounds Maximum number of debate rounds (default: 3)
+   * @param onRoundComplete Callback for when a round completes (for real-time updates)
+   */
+  async conductDebate(
+    issue: DetectedIssue,
+    context: AgentContext = {},
+    maxRounds: number = 3,
+    onRoundComplete?: (round: DiscussionRound, session: DebateSession) => void
+  ): Promise<DebateSession> {
+    const sessionId = generateId();
+    const startedAt = now();
+
+    // Round 0: Initial deliberation (collect initial opinions)
+    console.log(`[Moderator] Starting debate session ${sessionId} for issue: ${issue.title}`);
+    const initialOpinions: AgentOpinion[] = [];
+
+    for (const agent of this.agents) {
+      try {
+        const opinion = await agent.deliberate(issue, context);
+        initialOpinions.push(opinion);
+        console.log(`  - ${agent.role}: ${opinion.stance} (${(opinion.confidence * 100).toFixed(0)}%)`);
+      } catch (error) {
+        console.error(`Agent ${agent.id} failed initial deliberation:`, error);
+      }
+    }
+
+    const session: DebateSession = {
+      id: sessionId,
+      issueId: issue.id,
+      issue,
+      status: "in_progress",
+      rounds: [],
+      maxRounds,
+      currentRound: 0,
+      initialOpinions,
+      positionChanges: [],
+      startedAt,
+    };
+
+    // Check initial consensus - if high enough, skip debate
+    const initialConsensus = this.calculateConsensusScore(initialOpinions);
+    if (initialConsensus.consensusScore >= 0.8) {
+      console.log(`[Moderator] High initial consensus (${(initialConsensus.consensusScore * 100).toFixed(0)}%), skipping debate`);
+      session.status = "completed";
+      session.finalConsensusScore = initialConsensus.consensusScore;
+      session.completedAt = now();
+      return session;
+    }
+
+    // Conduct debate rounds
+    let currentOpinions = [...initialOpinions];
+    let allMessages: DiscussionMessage[] = [];
+
+    for (let roundNum = 1; roundNum <= maxRounds; roundNum++) {
+      console.log(`[Moderator] Starting round ${roundNum}/${maxRounds}`);
+      session.currentRound = roundNum;
+
+      const roundTopic = this.determineRoundTopic(roundNum, currentOpinions, allMessages);
+      const roundMessages: DiscussionMessage[] = [];
+      const roundStartedAt = now();
+
+      // Each agent responds to others' opinions
+      for (const agent of this.agents) {
+        if (agent instanceof BaseAgent && agent.respond) {
+          try {
+            const message = await agent.respond(issue, currentOpinions, allMessages, context);
+            roundMessages.push(message);
+            console.log(`  - ${agent.role} (${message.messageType}): ${message.content.slice(0, 80)}...`);
+          } catch (error) {
+            console.error(`Agent ${agent.id} failed to respond in round ${roundNum}:`, error);
+          }
+        }
+      }
+
+      allMessages = [...allMessages, ...roundMessages];
+
+      // Check for stance changes after this round
+      for (const agent of this.agents) {
+        if (agent instanceof BaseAgent && agent.updateStance) {
+          const currentOpinion = currentOpinions.find(o => o.agentId === agent.id);
+          if (currentOpinion) {
+            try {
+              const stanceChange = await agent.updateStance(currentOpinion, allMessages, context);
+              if (stanceChange) {
+                console.log(`  - ${agent.role} changed stance: ${currentOpinion.stance} → ${stanceChange.newStance}`);
+                session.positionChanges.push({
+                  agentId: agent.id,
+                  agentRole: agent.role,
+                  fromStance: currentOpinion.stance,
+                  toStance: stanceChange.newStance,
+                  reason: stanceChange.reason,
+                  atRound: roundNum,
+                });
+                // Update opinion for next round
+                currentOpinion.stance = stanceChange.newStance;
+              }
+            } catch (error) {
+              console.error(`Agent ${agent.id} failed to update stance:`, error);
+            }
+          }
+        }
+      }
+
+      // Calculate consensus shift
+      const previousConsensus = roundNum === 1
+        ? initialConsensus.consensusScore
+        : session.rounds[roundNum - 2]?.consensusShift ?? initialConsensus.consensusScore;
+      const currentConsensus = this.calculateConsensusScore(currentOpinions);
+      const consensusShift = currentConsensus.consensusScore - previousConsensus;
+
+      // Generate insights for this round
+      const keyInsights = this.extractKeyInsights(roundMessages);
+      const unresolvedPoints = this.findUnresolvedPoints(roundMessages, currentOpinions);
+
+      const round: DiscussionRound = {
+        roundNumber: roundNum,
+        topic: roundTopic,
+        messages: roundMessages,
+        consensusShift,
+        keyInsights,
+        unresolvedPoints,
+        startedAt: roundStartedAt,
+        completedAt: now(),
+      };
+
+      session.rounds.push(round);
+
+      // Notify callback if provided
+      if (onRoundComplete) {
+        onRoundComplete(round, session);
+      }
+
+      // Early termination if high consensus reached
+      if (currentConsensus.consensusScore >= 0.85) {
+        console.log(`[Moderator] High consensus reached (${(currentConsensus.consensusScore * 100).toFixed(0)}%), ending debate early`);
+        break;
+      }
+
+      // Early termination if no progress (consensus shift near 0 for 2 rounds)
+      if (roundNum >= 2) {
+        const recentShifts = session.rounds.slice(-2).map(r => Math.abs(r.consensusShift || 0));
+        if (recentShifts.every(s => s < 0.05)) {
+          console.log(`[Moderator] Minimal progress, ending debate`);
+          break;
+        }
+      }
+    }
+
+    // Finalize session
+    const finalConsensus = this.calculateConsensusScore(currentOpinions);
+    session.finalConsensusScore = finalConsensus.consensusScore;
+    session.status = "completed";
+    session.completedAt = now();
+
+    console.log(`[Moderator] Debate completed. Final consensus: ${(finalConsensus.consensusScore * 100).toFixed(0)}%`);
+    console.log(`  - Position changes: ${session.positionChanges.length}`);
+    console.log(`  - Total messages: ${allMessages.length}`);
+
+    return session;
+  }
+
+  /**
+   * Get a DecisionPacket from a completed debate session
+   */
+  getDecisionPacketFromDebate(session: DebateSession): DecisionPacket {
+    // Use the final opinions (with any stance changes applied)
+    const finalOpinions = session.initialOpinions.map(opinion => {
+      const changes = session.positionChanges.filter(c => c.agentId === opinion.agentId);
+      if (changes.length > 0) {
+        const lastChange = changes[changes.length - 1];
+        return { ...opinion, stance: lastChange.toStance };
+      }
+      return opinion;
+    });
+
+    return this.synthesizeRuleBased(session.issue, finalOpinions);
+  }
+
+  private determineRoundTopic(
+    roundNum: number,
+    opinions: AgentOpinion[],
+    history: DiscussionMessage[]
+  ): string {
+    if (roundNum === 1) {
+      // First round: focus on main disagreements
+      const opposingAgents = opinions.filter(o => o.stance.includes("oppose"));
+      if (opposingAgents.length > 0) {
+        return `Addressing concerns raised by ${opposingAgents.map(o => o.role).join(", ")}`;
+      }
+      return "Initial position clarification and key concerns";
+    }
+
+    if (roundNum === 2) {
+      // Second round: focus on finding common ground
+      return "Finding common ground and exploring alternatives";
+    }
+
+    // Later rounds: resolve remaining disagreements
+    const unresolvedTopics = this.findUnresolvedPoints(history, opinions);
+    if (unresolvedTopics.length > 0) {
+      return `Resolving: ${unresolvedTopics[0]}`;
+    }
+
+    return "Final consensus building";
+  }
+
+  private extractKeyInsights(messages: DiscussionMessage[]): string[] {
+    const insights: string[] = [];
+
+    // Extract key points from messages
+    const allKeyPoints = messages.flatMap(m => m.keyPoints);
+    const uniquePoints = [...new Set(allKeyPoints)];
+
+    // Prioritize concession and support messages
+    const concessions = messages.filter(m => m.messageType === "concession");
+    const supports = messages.filter(m => m.messageType === "support");
+
+    if (concessions.length > 0) {
+      insights.push(`${concessions.length} agent(s) adjusted position based on discussion`);
+    }
+
+    if (supports.length > 0) {
+      insights.push(`Agreement found on: ${supports[0].keyPoints[0] || "key issues"}`);
+    }
+
+    // Add top unique points
+    insights.push(...uniquePoints.slice(0, 3));
+
+    return insights.slice(0, 5);
+  }
+
+  private findUnresolvedPoints(
+    messages: DiscussionMessage[],
+    opinions: AgentOpinion[]
+  ): string[] {
+    const unresolved: string[] = [];
+
+    // Find rebuttals that weren't followed by concession or support
+    const rebuttals = messages.filter(m => m.messageType === "rebuttal");
+
+    for (const rebuttal of rebuttals) {
+      const hasResponse = messages.some(
+        m =>
+          m.targetAgentRole === rebuttal.speakerRole &&
+          (m.messageType === "concession" || m.messageType === "support")
+      );
+
+      if (!hasResponse && rebuttal.keyPoints[0]) {
+        unresolved.push(rebuttal.keyPoints[0]);
+      }
+    }
+
+    // Find agents still strongly opposing
+    const strongOpposers = opinions.filter(o => o.stance === "strongly_oppose");
+    for (const opposer of strongOpposers) {
+      if (opposer.concerns[0]) {
+        unresolved.push(`${opposer.role}: ${opposer.concerns[0]}`);
+      }
+    }
+
+    return [...new Set(unresolved)].slice(0, 3);
   }
 
   private async synthesizeWithLLM(

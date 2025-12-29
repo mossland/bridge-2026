@@ -66,6 +66,22 @@ class APIClient {
     });
   }
 
+  // Debate (multi-round discussion)
+  async startDebate(issue: any, context?: any, maxRounds?: number) {
+    return this.fetch<{ debateSession: any; decisionPacket: any }>("/api/debate", {
+      method: "POST",
+      body: JSON.stringify({ issue, context, maxRounds }),
+    });
+  }
+
+  async getDebateSession(sessionId: string) {
+    return this.fetch<{ debateSession: any }>(`/api/debate/${sessionId}`);
+  }
+
+  async getDebateSessions() {
+    return this.fetch<{ debateSessions: any[]; count: number }>("/api/debates");
+  }
+
   // Proposals
   async getProposals(status?: string) {
     const query = status ? `?status=${status}` : "";

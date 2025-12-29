@@ -1,5 +1,7 @@
 import "dotenv/config";
 import express, { Express } from "express";
+import { createServer } from "http";
+import { Server as SocketIOServer } from "socket.io";
 import cors from "cors";
 import helmet from "helmet";
 
@@ -205,11 +207,40 @@ const delegationManager = new DelegationManager();
 const outcomeTracker = new OutcomeTrackerImpl();
 const trustManager = new TrustManager();
 
-// Create Express app
+// Create Express app with Socket.IO
 const app: Express = express();
+const httpServer = createServer(app);
+const io = new SocketIOServer(httpServer, {
+  cors: {
+    origin: ["http://localhost:4001", "http://localhost:3000"],
+    methods: ["GET", "POST"],
+  },
+});
+
 app.use(helmet());
 app.use(cors());
 app.use(express.json());
+
+// Socket.IO connection handling
+io.on("connection", (socket) => {
+  console.log(`🔌 Client connected: ${socket.id}`);
+
+  // Send current stats on connection
+  const signalCount = signalDb.count.get() as { count: number };
+  const issueCount = issueDb.count.get() as { count: number };
+  const proposals = votingSystem.listProposals();
+
+  socket.emit("stats:update", {
+    signals: signalCount.count,
+    issues: issueCount.count,
+    proposals: proposals.length,
+    activeProposals: proposals.filter(p => p.status === "active").length,
+  });
+
+  socket.on("disconnect", () => {
+    console.log(`🔌 Client disconnected: ${socket.id}`);
+  });
+});
 
 // Health check
 app.get("/health", (req, res) => {
@@ -249,6 +280,14 @@ app.post("/api/signals/collect", async (req, res) => {
     for (const signal of signals) {
       signalDb.insert.run(serializeSignal(signal));
     }
+
+    // Emit real-time event
+    const signalCount = signalDb.count.get() as { count: number };
+    io.emit("signals:collected", {
+      count: signals.length,
+      total: signalCount.count,
+      signals: signals.slice(0, 5), // Send latest 5 for preview
+    });
 
     res.json({ collected: signals.length, signals });
   } catch (error) {
@@ -325,6 +364,16 @@ app.post("/api/issues/detect", async (req, res) => {
 
     // Return all active issues
     const allIssues = issueDb.getActive.all(50).map(deserializeIssue);
+
+    // Emit real-time event if new issues were saved
+    if (savedIssues.length > 0) {
+      io.emit("issues:detected", {
+        newCount: savedIssues.length,
+        totalCount: allIssues.length,
+        issues: savedIssues,
+      });
+    }
+
     res.json({
       detected: detectedIssues.length,
       saved: savedIssues.length,
@@ -361,6 +410,9 @@ app.patch("/api/issues/:id", async (req, res) => {
   }
 });
 
+// In-memory storage for debate sessions
+const debateSessions = new Map<string, any>();
+
 // Deliberation endpoints
 app.post("/api/deliberate", async (req, res) => {
   try {
@@ -372,6 +424,85 @@ app.post("/api/deliberate", async (req, res) => {
     res.json({ decisionPacket });
   } catch (error) {
     res.status(500).json({ error: "Failed to deliberate" });
+  }
+});
+
+// Debate endpoints - multi-round agent discussion
+app.post("/api/debate", async (req, res) => {
+  try {
+    const { issue, context, maxRounds = 3 } = req.body;
+    if (!issue) {
+      return res.status(400).json({ error: "Issue is required" });
+    }
+
+    // Conduct the debate with real-time updates via WebSocket
+    const debateSession = await moderator.conductDebate(
+      issue,
+      context || {},
+      maxRounds,
+      (round, session) => {
+        // Emit real-time updates for each round
+        io.emit("debate:round_completed", {
+          sessionId: session.id,
+          round: {
+            roundNumber: round.roundNumber,
+            topic: round.topic,
+            messages: round.messages,
+            consensusShift: round.consensusShift,
+            keyInsights: round.keyInsights,
+            unresolvedPoints: round.unresolvedPoints,
+          },
+          currentRound: session.currentRound,
+          maxRounds: session.maxRounds,
+          positionChanges: session.positionChanges,
+        });
+      }
+    );
+
+    // Store the session
+    debateSessions.set(debateSession.id, debateSession);
+
+    // Also generate a decision packet from the debate
+    const decisionPacket = moderator.getDecisionPacketFromDebate(debateSession);
+
+    // Emit completion event
+    io.emit("debate:completed", {
+      sessionId: debateSession.id,
+      finalConsensusScore: debateSession.finalConsensusScore,
+      positionChanges: debateSession.positionChanges.length,
+      totalRounds: debateSession.rounds.length,
+    });
+
+    res.json({
+      debateSession,
+      decisionPacket,
+    });
+  } catch (error) {
+    console.error("Failed to conduct debate:", error);
+    res.status(500).json({ error: "Failed to conduct debate" });
+  }
+});
+
+app.get("/api/debate/:sessionId", (req, res) => {
+  try {
+    const session = debateSessions.get(req.params.sessionId);
+    if (!session) {
+      return res.status(404).json({ error: "Debate session not found" });
+    }
+    res.json({ debateSession: session });
+  } catch (error) {
+    res.status(500).json({ error: "Failed to fetch debate session" });
+  }
+});
+
+app.get("/api/debates", (req, res) => {
+  try {
+    const sessions = Array.from(debateSessions.values())
+      .sort((a, b) => new Date(b.startedAt).getTime() - new Date(a.startedAt).getTime())
+      .slice(0, 20); // Return last 20 sessions
+    res.json({ debateSessions: sessions, count: sessions.length });
+  } catch (error) {
+    res.status(500).json({ error: "Failed to fetch debate sessions" });
   }
 });
 
@@ -396,6 +527,15 @@ app.post("/api/proposals", (req, res) => {
     // Auto-activate the proposal for immediate voting
     votingSystem.activateProposal(proposal.id);
     const activatedProposal = votingSystem.getProposal(proposal.id);
+
+    // Emit real-time event
+    const allProposals = votingSystem.listProposals();
+    io.emit("proposals:created", {
+      proposal: activatedProposal,
+      totalCount: allProposals.length,
+      activeCount: allProposals.filter(p => p.status === "active").length,
+    });
+
     res.status(201).json({ proposal: activatedProposal });
   } catch (error) {
     res.status(500).json({ error: "Failed to create proposal" });
@@ -427,6 +567,24 @@ app.post("/api/proposals/:id/vote", (req, res) => {
       BigInt(weight),
       reason
     );
+
+    // Emit real-time event
+    const tally = votingSystem.tallyVotes(req.params.id);
+    io.emit("proposals:voted", {
+      proposalId: req.params.id,
+      vote: {
+        ...vote,
+        weight: vote.weight.toString(),
+      },
+      tally: {
+        forVotes: tally.forVotes.toString(),
+        againstVotes: tally.againstVotes.toString(),
+        abstainVotes: tally.abstainVotes.toString(),
+        totalVotes: tally.totalVotes.toString(),
+        participationRate: tally.participationRate,
+      },
+    });
+
     // Convert BigInt to string for JSON serialization
     res.status(201).json({
       vote: {
@@ -778,6 +936,17 @@ async function collectAndSaveSignals() {
   for (const signal of signals) {
     signalDb.insert.run(serializeSignal(signal));
   }
+
+  // Emit real-time event
+  if (signals.length > 0) {
+    const signalCount = signalDb.count.get() as { count: number };
+    io.emit("signals:collected", {
+      count: signals.length,
+      total: signalCount.count,
+      signals: signals.slice(0, 5),
+    });
+  }
+
   return signals;
 }
 
@@ -793,12 +962,24 @@ async function detectAndSaveIssues() {
   ];
 
   let savedCount = 0;
+  const savedIssues = [];
   for (const issue of detectedIssues) {
     const existing = issueDb.findSimilar.get(issue.category);
     if (!existing) {
       issueDb.insert.run(serializeIssue(issue));
+      savedIssues.push(issue);
       savedCount++;
     }
+  }
+
+  // Emit real-time event if new issues were saved
+  if (savedCount > 0) {
+    const issueCount = issueDb.count.get() as { count: number };
+    io.emit("issues:detected", {
+      newCount: savedCount,
+      totalCount: issueCount.count,
+      issues: savedIssues,
+    });
   }
 
   return { detected: detectedIssues.length, saved: savedCount };
@@ -806,7 +987,7 @@ async function detectAndSaveIssues() {
 
 // Start server
 const PORT = process.env.PORT || 4000;
-app.listen(PORT, () => {
+httpServer.listen(PORT, () => {
   console.log(`
 ╔═══════════════════════════════════════════════════════════╗
 ║                                                           ║
@@ -829,6 +1010,9 @@ app.listen(PORT, () => {
    - POST /api/issues/detect   - Detect and save issues
    - PATCH /api/issues/:id     - Update issue status
    - POST /api/deliberate      - Agent deliberation
+   - POST /api/debate          - Multi-round agent debate
+   - GET  /api/debate/:id      - Get debate session
+   - GET  /api/debates         - List debate sessions
    - GET  /api/proposals       - List proposals
    - POST /api/proposals       - Create proposal
    - POST /api/proposals/:id/vote     - Cast vote
@@ -839,6 +1023,15 @@ app.listen(PORT, () => {
    - GET  /api/outcomes/:id/proof  - Generate proof
    - GET  /api/trust/:entityId - Get trust score
    - GET  /api/stats           - System statistics
+
+🔌 WebSocket Events:
+   - signals:collected         - New signals collected
+   - issues:detected           - New issues detected
+   - proposals:created         - New proposal created
+   - proposals:voted           - Vote cast on proposal
+   - debate:round_completed    - Debate round finished
+   - debate:completed          - Full debate completed
+   - stats:update              - Stats update on connect
   `);
 
   // Get current DB stats

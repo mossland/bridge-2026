@@ -6,6 +6,7 @@ import { useTranslations } from "next-intl";
 import { ConnectButton } from "@rainbow-me/rainbowkit";
 import { cn } from "@/lib/utils";
 import { LanguageSwitcher } from "./LanguageSwitcher";
+import { RealtimeIndicator } from "./RealtimeIndicator";
 import {
   Activity,
   AlertTriangle,
@@ -65,8 +66,9 @@ export function Header() {
             })}
           </nav>
 
-          {/* Language & Wallet */}
+          {/* Realtime, Language & Wallet */}
           <div className="flex items-center space-x-3">
+            <RealtimeIndicator />
             <LanguageSwitcher />
             <ConnectButton
               showBalance={false}

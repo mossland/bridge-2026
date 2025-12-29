@@ -5,9 +5,10 @@ import { useRouter } from "next/navigation";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAccount } from "wagmi";
 import { useTranslations } from "next-intl";
-import { AlertTriangle, MessageSquare, Users, Shield, Coins, Code, ChevronRight, Bot, Loader2, RefreshCw, CheckCircle, Clock } from "lucide-react";
+import { AlertTriangle, MessageSquare, Users, Shield, Coins, Code, ChevronRight, Bot, Loader2, RefreshCw, CheckCircle, Clock, MessageCircle } from "lucide-react";
 import { cn, timeAgo } from "@/lib/utils";
 import { api } from "@/lib/api";
+import { DebatePanel } from "@/components/DebatePanel";
 
 // Progress component for deliberation
 function DeliberationProgress({ isActive }: { isActive: boolean }) {
@@ -128,6 +129,19 @@ export default function IssuesPage() {
     onSuccess: (result) => {
       if (selectedIssue) {
         setSelectedIssue({ ...selectedIssue, decisionPacket: result.decisionPacket });
+      }
+    },
+  });
+
+  const debateMutation = useMutation({
+    mutationFn: (issue: any) => api.startDebate(issue, {}, 3),
+    onSuccess: (result) => {
+      if (selectedIssue) {
+        setSelectedIssue({
+          ...selectedIssue,
+          debateSession: result.debateSession,
+          decisionPacket: result.decisionPacket,
+        });
       }
     },
   });
@@ -261,20 +275,47 @@ export default function IssuesPage() {
                 <div className="text-center py-8 text-gray-500">
                   <Bot className="w-12 h-12 mx-auto mb-3 text-gray-300" />
                   <p>{t("issues.agentDeliberation")}</p>
-                  {!deliberateMutation.isPending && (
-                    <button
-                      onClick={() => deliberateMutation.mutate(selectedIssue)}
-                      disabled={deliberateMutation.isPending}
-                      className="btn-primary mt-4"
-                    >
-                      {t("issues.deliberate")}
-                    </button>
+                  {!deliberateMutation.isPending && !debateMutation.isPending && (
+                    <div className="flex flex-col space-y-2 mt-4">
+                      <button
+                        onClick={() => deliberateMutation.mutate(selectedIssue)}
+                        disabled={deliberateMutation.isPending || debateMutation.isPending}
+                        className="btn-primary"
+                      >
+                        {t("issues.deliberate")}
+                      </button>
+                      <button
+                        onClick={() => debateMutation.mutate(selectedIssue)}
+                        disabled={deliberateMutation.isPending || debateMutation.isPending}
+                        className="btn-secondary flex items-center justify-center space-x-2"
+                      >
+                        <MessageCircle className="w-4 h-4" />
+                        <span>{t("issues.startDebate")}</span>
+                      </button>
+                    </div>
                   )}
                   <DeliberationProgress isActive={deliberateMutation.isPending} />
+                  {debateMutation.isPending && (
+                    <div className="mt-4 space-y-2">
+                      <div className="flex items-center justify-center space-x-2 text-moss-600">
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        <span>{t("issues.debating") || "Debating..."}</span>
+                      </div>
+                      <p className="text-xs text-gray-400">Multi-round debate in progress...</p>
+                    </div>
+                  )}
                 </div>
               ) : (
                 <div className="space-y-4">
-                  {selectedIssue.decisionPacket?.agentOpinions && (
+                  {/* Debate Panel - Show if debate session exists */}
+                  {selectedIssue.debateSession && (
+                    <DebatePanel
+                      session={selectedIssue.debateSession}
+                      isLoading={debateMutation.isPending}
+                    />
+                  )}
+
+                  {selectedIssue.decisionPacket?.agentOpinions && !selectedIssue.debateSession && (
                     <div>
                       <h4 className="text-sm font-medium text-gray-500 mb-2">{t("issues.agentDeliberation")}</h4>
                       <div className="space-y-2">

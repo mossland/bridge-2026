@@ -78,6 +78,8 @@
     "systemNormal": "시스템 정상 작동 중",
     "deliberate": "심의 시작",
     "deliberating": "심의 중...",
+    "startDebate": "토론 시작",
+    "debating": "토론 중...",
     "type": "유형",
     "confidence": "신뢰도",
     "detectedAt": "탐지 시각",
@@ -94,6 +96,23 @@
     "alternatives": "대안",
     "createProposal": "제안 생성",
     "proposalCreated": "제안이 생성되었습니다! 이동 중..."
+  },
+  "debate": {
+    "title": "에이전트 토론",
+    "inProgress": "진행 중",
+    "completed": "완료",
+    "round": "라운드",
+    "messages": "개 메시지",
+    "initialPositions": "초기 입장",
+    "positionChanges": "입장 변경",
+    "keyInsights": "핵심 통찰",
+    "unresolvedPoints": "미해결 쟁점",
+    "processing": "에이전트들이 토론 중입니다...",
+    "finalConsensus": "최종 합의",
+    "roundsCompleted": "완료된 라운드",
+    "highConsensus": "높은 합의",
+    "moderateConsensus": "보통 합의",
+    "lowConsensus": "낮은 합의"
   },
   "proposals": {
     "title": "거버넌스 제안",

@@ -19,4 +19,7 @@ export type {
   AgentOpinion,
   DecisionPacket,
   AgentContext,
+  DebateSession,
+  DiscussionRound,
+  DiscussionMessage,
 } from "@oracle/core";

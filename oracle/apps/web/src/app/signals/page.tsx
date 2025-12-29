@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useTranslations } from "next-intl";
+import { useSocketContext } from "@/contexts/SocketContext";
 import {
   Activity,
   RefreshCw,
@@ -24,6 +25,7 @@ import {
   FileText,
   Search,
   X,
+  Bell,
 } from "lucide-react";
 import { cn, getSeverityColor, timeAgo } from "@/lib/utils";
 import { api } from "@/lib/api";
@@ -301,16 +303,36 @@ function SignalCard({ signal, t }: { signal: any; t: any }) {
 export default function SignalsPage() {
   const t = useTranslations();
   const queryClient = useQueryClient();
+  const { onSignalsCollected, isConnected } = useSocketContext();
   const [filter, setFilter] = useState<string>("all");
   const [sourceFilter, setSourceFilter] = useState<string>("all");
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
   const [searchQuery, setSearchQuery] = useState<string>("");
+  const [realtimeNotification, setRealtimeNotification] = useState<{ count: number; show: boolean } | null>(null);
 
   const { data, isLoading } = useQuery({
     queryKey: ["signals"],
     queryFn: () => api.getSignals(),
-    refetchInterval: 10000,
+    refetchInterval: isConnected ? 30000 : 10000, // Slower refresh when connected via WebSocket
   });
+
+  // Listen for real-time signal updates
+  useEffect(() => {
+    const unsubscribe = onSignalsCollected((event) => {
+      // Show notification
+      setRealtimeNotification({ count: event.count, show: true });
+
+      // Auto-hide after 3 seconds
+      setTimeout(() => {
+        setRealtimeNotification(null);
+      }, 3000);
+
+      // Invalidate query to refresh data
+      queryClient.invalidateQueries({ queryKey: ["signals"] });
+    });
+
+    return () => unsubscribe();
+  }, [onSignalsCollected, queryClient]);
 
   const collectMutation = useMutation({
     mutationFn: () => api.collectSignals(),
@@ -356,6 +378,14 @@ export default function SignalsPage() {
 
   return (
     <div className="space-y-6">
+      {/* Real-time Notification Toast */}
+      {realtimeNotification?.show && (
+        <div className="fixed top-20 right-4 z-50 bg-moss-500 text-white px-4 py-3 rounded-lg shadow-lg flex items-center space-x-2 animate-in fade-in slide-in-from-top-2">
+          <Bell className="w-5 h-5" />
+          <span className="font-medium">+{realtimeNotification.count} new signals collected</span>
+        </div>
+      )}
+
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>

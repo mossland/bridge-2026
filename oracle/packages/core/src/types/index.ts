@@ -32,6 +32,9 @@ export {
   AgentOpinionSchema,
   DecisionPacketSchema,
   AgentContextSchema,
+  DiscussionMessageSchema,
+  DiscussionRoundSchema,
+  DebateSessionSchema,
   type AgentRole,
   type Stance,
   type ProposalType,
@@ -39,6 +42,9 @@ export {
   type DecisionPacket,
   type AgentContext,
   type GovernanceAgent,
+  type DiscussionMessage,
+  type DiscussionRound,
+  type DebateSession,
 } from "./agent.js";
 
 // Governance types (Layer 4: Human Governance)
