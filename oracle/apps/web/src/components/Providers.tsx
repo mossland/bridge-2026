@@ -6,6 +6,8 @@ import { WagmiProvider } from "wagmi";
 import { RainbowKitProvider, darkTheme } from "@rainbow-me/rainbowkit";
 import { config } from "@/lib/config";
 import { SocketProvider } from "@/contexts/SocketContext";
+import { ToastProvider } from "@/contexts/ToastContext";
+import { WebSocketToastHandler } from "@/components/WebSocketToastHandler";
 import "@rainbow-me/rainbowkit/styles.css";
 
 const queryClient = new QueryClient();
@@ -21,18 +23,21 @@ export function Providers({ children }: { children: React.ReactNode }) {
     <WagmiProvider config={config}>
       <QueryClientProvider client={queryClient}>
         <SocketProvider>
-          {mounted ? (
-            <RainbowKitProvider
-              theme={darkTheme({
-                accentColor: "#16a34a",
-                accentColorForeground: "white",
-              })}
-            >
-              {children}
-            </RainbowKitProvider>
-          ) : (
-            children
-          )}
+          <ToastProvider position="top-right" maxToasts={5}>
+            <WebSocketToastHandler />
+            {mounted ? (
+              <RainbowKitProvider
+                theme={darkTheme({
+                  accentColor: "#16a34a",
+                  accentColorForeground: "white",
+                })}
+              >
+                {children}
+              </RainbowKitProvider>
+            ) : (
+              children
+            )}
+          </ToastProvider>
         </SocketProvider>
       </QueryClientProvider>
     </WagmiProvider>

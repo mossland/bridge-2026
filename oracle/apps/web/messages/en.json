@@ -217,5 +217,71 @@
     "unauthorized": "Unauthorized",
     "notFound": "Not found",
     "serverError": "Server error"
+  },
+  "toast": {
+    "connected": {
+      "title": "Connected",
+      "message": "Real-time updates enabled"
+    },
+    "disconnected": {
+      "title": "Disconnected",
+      "message": "Connection lost. Reconnecting..."
+    },
+    "signalsCollected": {
+      "title": "Signals Collected",
+      "message": "{count} new signals collected"
+    },
+    "issuesDetected": {
+      "title": "Issues Detected",
+      "message": "{count} new issues detected"
+    },
+    "proposalCreated": {
+      "title": "Proposal Created",
+      "message": "New proposal: {title}"
+    },
+    "proposalVoted": {
+      "title": "Vote Recorded",
+      "message": "{voter} voted {vote}"
+    },
+    "debateRoundCompleted": {
+      "title": "Debate Round Complete",
+      "message": "Round {round} of {total} completed"
+    },
+    "debateCompleted": {
+      "title": "Debate Completed",
+      "message": "Final consensus: {score}%"
+    },
+    "deliberationStarted": {
+      "title": "Deliberation Started",
+      "message": "Agents are analyzing the issue"
+    },
+    "deliberationCompleted": {
+      "title": "Deliberation Completed",
+      "message": "Decision packet generated"
+    },
+    "voteSuccess": {
+      "title": "Vote Submitted",
+      "message": "Your vote has been recorded"
+    },
+    "voteError": {
+      "title": "Vote Failed",
+      "message": "Failed to submit vote"
+    },
+    "executionSuccess": {
+      "title": "Execution Complete",
+      "message": "Proposal has been executed"
+    },
+    "executionError": {
+      "title": "Execution Failed",
+      "message": "Failed to execute proposal"
+    },
+    "delegationCreated": {
+      "title": "Delegation Created",
+      "message": "New delegation policy active"
+    },
+    "delegationRemoved": {
+      "title": "Delegation Removed",
+      "message": "Delegation policy deactivated"
+    }
   }
 }

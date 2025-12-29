@@ -132,6 +132,13 @@ BRIDGE 2026은 Mossland의 MOC 토큰 홀더를 위한 Physical AI 거버넌스 
   - 실시간 이슈 탐지 알림
   - 제안 생성/투표 실시간 반영
   - 시스템 통계 실시간 업데이트
+- [x] **토스트 알림 시스템**
+  - ToastProvider Context 기반 전역 상태 관리
+  - 4가지 타입 (success, error, warning, info)
+  - 6가지 카테고리 (system, signal, issue, proposal, debate, vote)
+  - 프로그레스 바 및 자동 dismiss
+  - WebSocket 이벤트 자동 알림
+  - 다국어 지원 (한국어/영어)
 
 ### 5. 데이터 지속성
 
@@ -157,6 +164,7 @@ BRIDGE 2026은 Mossland의 MOC 토큰 홀더를 위한 Physical AI 거버넌스 
 
 | 커밋 | 작업 내용 |
 |------|----------|
+| (pending) | 토스트 알림 시스템 고도화 |
 | (pending) | 에이전트 토론 시스템 구현 |
 | (pending) | WebSocket 실시간 업데이트 기능 추가 |
 | `99b96c4` | 에이전트 심의 시스템 고도화 및 UI/UX 개선 |
@@ -187,7 +195,7 @@ BRIDGE 2026은 Mossland의 MOC 토큰 홀더를 위한 Physical AI 거버넌스 
 #### UI/UX 개선
 - [x] ~~실시간 WebSocket 업데이트~~ (완료)
 - [x] ~~투표 현황 실시간 반영~~ (완료)
-- [ ] 토스트 알림 시스템 고도화
+- [x] ~~토스트 알림 시스템 고도화~~ (완료)
 - [ ] 모바일 반응형 최적화
 
 ### 중기 (Mid-term)
@@ -289,6 +297,9 @@ NEXT_PUBLIC_WALLET_CONNECT_ID=...
 | `apps/api/src/db.ts` | SQLite 데이터베이스 |
 | `apps/web/src/app/*/page.tsx` | 각 페이지 UI |
 | `apps/web/src/lib/api.ts` | API 클라이언트 |
+| `apps/web/src/components/Toast.tsx` | 토스트 알림 컴포넌트 |
+| `apps/web/src/contexts/ToastContext.tsx` | 토스트 전역 상태 관리 |
+| `apps/web/src/hooks/useWebSocketToast.ts` | WebSocket-토스트 연동 훅 |
 | `apps/web/messages/*.json` | i18n 번역 |
 | `packages/core/src/types/` | 공유 타입 정의 |
 | `packages/agentic-consensus/src/` | 에이전트 및 Moderator |

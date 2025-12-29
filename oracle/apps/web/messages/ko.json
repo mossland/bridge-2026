@@ -217,5 +217,71 @@
     "unauthorized": "권한 없음",
     "notFound": "찾을 수 없음",
     "serverError": "서버 오류"
+  },
+  "toast": {
+    "connected": {
+      "title": "연결됨",
+      "message": "실시간 업데이트 활성화"
+    },
+    "disconnected": {
+      "title": "연결 끊김",
+      "message": "연결이 끊겼습니다. 재연결 중..."
+    },
+    "signalsCollected": {
+      "title": "신호 수집 완료",
+      "message": "{count}개의 새 신호 수집됨"
+    },
+    "issuesDetected": {
+      "title": "이슈 탐지됨",
+      "message": "{count}개의 새 이슈 탐지됨"
+    },
+    "proposalCreated": {
+      "title": "제안 생성됨",
+      "message": "새 제안: {title}"
+    },
+    "proposalVoted": {
+      "title": "투표 기록됨",
+      "message": "{voter}님이 {vote} 투표"
+    },
+    "debateRoundCompleted": {
+      "title": "토론 라운드 완료",
+      "message": "라운드 {round}/{total} 완료"
+    },
+    "debateCompleted": {
+      "title": "토론 완료",
+      "message": "최종 합의: {score}%"
+    },
+    "deliberationStarted": {
+      "title": "심의 시작",
+      "message": "에이전트가 이슈를 분석 중입니다"
+    },
+    "deliberationCompleted": {
+      "title": "심의 완료",
+      "message": "결정 패킷이 생성되었습니다"
+    },
+    "voteSuccess": {
+      "title": "투표 제출됨",
+      "message": "투표가 기록되었습니다"
+    },
+    "voteError": {
+      "title": "투표 실패",
+      "message": "투표 제출에 실패했습니다"
+    },
+    "executionSuccess": {
+      "title": "실행 완료",
+      "message": "제안이 실행되었습니다"
+    },
+    "executionError": {
+      "title": "실행 실패",
+      "message": "제안 실행에 실패했습니다"
+    },
+    "delegationCreated": {
+      "title": "위임 생성됨",
+      "message": "새 위임 정책이 활성화되었습니다"
+    },
+    "delegationRemoved": {
+      "title": "위임 삭제됨",
+      "message": "위임 정책이 비활성화되었습니다"
+    }
   }
 }

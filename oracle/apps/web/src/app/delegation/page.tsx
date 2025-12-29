@@ -7,6 +7,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Users, Bot, Shield, Coins, Code, Plus, Trash2, Check, AlertTriangle, Loader2 } from "lucide-react";
 import { cn, timeAgo } from "@/lib/utils";
 import { useVotingPower } from "@/hooks/useMOC";
+import { useToast } from "@/contexts/ToastContext";
 import { api } from "@/lib/api";
 
 const agents = [
@@ -17,6 +18,8 @@ const agents = [
 ];
 
 function DelegationForm({ onClose, t, address, onSuccess }: { onClose: () => void; t: any; address: string; onSuccess: () => void }) {
+  const toast = useToast();
+  const tToast = useTranslations("toast");
   const [selectedAgent, setSelectedAgent] = useState<string | null>(null);
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [maxBudget, setMaxBudget] = useState<number>(0);
@@ -40,6 +43,9 @@ function DelegationForm({ onClose, t, address, onSuccess }: { onClose: () => voi
       return api.createDelegation(address, selectedAgent!, conditions, expiresAt);
     },
     onSuccess: () => {
+      toast.success(tToast("delegationCreated.title"), tToast("delegationCreated.message"), {
+        category: "vote",
+      });
       onSuccess();
       onClose();
     },
@@ -142,6 +148,8 @@ function DelegationForm({ onClose, t, address, onSuccess }: { onClose: () => voi
 
 export default function DelegationPage() {
   const t = useTranslations();
+  const tToast = useTranslations("toast");
+  const toast = useToast();
   const queryClient = useQueryClient();
   const { isConnected, address } = useAccount();
   const { formatted: votingPower } = useVotingPower();
@@ -158,6 +166,9 @@ export default function DelegationPage() {
     mutationFn: (id: string) => api.revokeDelegation(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["delegations"] });
+      toast.success(tToast("delegationRemoved.title"), tToast("delegationRemoved.message"), {
+        category: "vote",
+      });
     },
   });
 

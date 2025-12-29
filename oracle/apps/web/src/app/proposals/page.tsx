@@ -7,6 +7,7 @@ import { useTranslations } from "next-intl";
 import { Vote, Clock, CheckCircle, XCircle, Bot, ChevronDown, ChevronUp, Loader2, AlertCircle, Play, Zap } from "lucide-react";
 import { cn, getStatusColor, timeAgo, formatNumber } from "@/lib/utils";
 import { useVotingPower } from "@/hooks/useMOC";
+import { useToast } from "@/contexts/ToastContext";
 import { api } from "@/lib/api";
 
 function VotingBar({ forVotes, againstVotes, abstainVotes, t }: { forVotes: number; againstVotes: number; abstainVotes: number; t: any }) {
@@ -33,6 +34,8 @@ function VotingBar({ forVotes, againstVotes, abstainVotes, t }: { forVotes: numb
 function VoteModal({ proposal, onClose, onSuccess, t }: { proposal: any; onClose: () => void; onSuccess: () => void; t: any }) {
   const { formatted, votingPower } = useVotingPower();
   const { address } = useAccount();
+  const toast = useToast();
+  const tToast = useTranslations("toast");
   const [selectedChoice, setSelectedChoice] = useState<string | null>(null);
   const [reason, setReason] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -57,10 +60,16 @@ function VoteModal({ proposal, onClose, onSuccess, t }: { proposal: any; onClose
       );
     },
     onSuccess: () => {
+      toast.success(tToast("voteSuccess.title"), tToast("voteSuccess.message"), {
+        category: "vote",
+      });
       onSuccess();
       onClose();
     },
     onError: (err: Error) => {
+      toast.error(tToast("voteError.title"), err.message, {
+        category: "vote",
+      });
       setError(err.message);
     },
   });
@@ -151,12 +160,13 @@ function VoteModal({ proposal, onClose, onSuccess, t }: { proposal: any; onClose
 
 export default function ProposalsPage() {
   const t = useTranslations();
+  const tToast = useTranslations("toast");
+  const toast = useToast();
   const { isConnected } = useAccount();
   const queryClient = useQueryClient();
   const [filter, setFilter] = useState<string>("all");
   const [votingProposal, setVotingProposal] = useState<any>(null);
   const [expandedId, setExpandedId] = useState<string | null>(null);
-  const [voteSuccess, setVoteSuccess] = useState<string | null>(null);
 
   const { data, isLoading } = useQuery({
     queryKey: ["proposals", filter],
@@ -169,9 +179,6 @@ export default function ProposalsPage() {
   const handleVoteSuccess = () => {
     // Invalidate and refetch proposals
     queryClient.invalidateQueries({ queryKey: ["proposals"] });
-    // Show success message
-    setVoteSuccess(t("proposals.voted"));
-    setTimeout(() => setVoteSuccess(null), 3000);
   };
 
   // Execute mutation
@@ -179,8 +186,14 @@ export default function ProposalsPage() {
     mutationFn: (proposalId: string) => api.executeProposal(proposalId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["proposals"] });
-      setVoteSuccess(t("proposals.executed"));
-      setTimeout(() => setVoteSuccess(null), 3000);
+      toast.success(tToast("executionSuccess.title"), tToast("executionSuccess.message"), {
+        category: "proposal",
+      });
+    },
+    onError: (err: Error) => {
+      toast.error(tToast("executionError.title"), err.message, {
+        category: "proposal",
+      });
     },
   });
 
@@ -194,14 +207,6 @@ export default function ProposalsPage() {
 
   return (
     <div className="space-y-6">
-      {/* Success Toast */}
-      {voteSuccess && (
-        <div className="fixed top-4 right-4 z-50 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg flex items-center space-x-2 animate-in fade-in slide-in-from-top-2">
-          <CheckCircle className="w-5 h-5" />
-          <span className="font-medium">{voteSuccess}</span>
-        </div>
-      )}
-
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>

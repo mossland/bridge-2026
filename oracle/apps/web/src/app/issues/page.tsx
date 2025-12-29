@@ -7,6 +7,7 @@ import { useAccount } from "wagmi";
 import { useTranslations } from "next-intl";
 import { AlertTriangle, MessageSquare, Users, Shield, Coins, Code, ChevronRight, Bot, Loader2, RefreshCw, CheckCircle, Clock, MessageCircle } from "lucide-react";
 import { cn, timeAgo } from "@/lib/utils";
+import { useToast } from "@/contexts/ToastContext";
 import { api } from "@/lib/api";
 import { DebatePanel } from "@/components/DebatePanel";
 
@@ -105,6 +106,8 @@ const stanceColors: Record<string, string> = {
 
 export default function IssuesPage() {
   const t = useTranslations();
+  const tToast = useTranslations("toast");
+  const toast = useToast();
   const router = useRouter();
   const queryClient = useQueryClient();
   const { address } = useAccount();
@@ -130,6 +133,15 @@ export default function IssuesPage() {
       if (selectedIssue) {
         setSelectedIssue({ ...selectedIssue, decisionPacket: result.decisionPacket });
       }
+      toast.success(tToast("deliberationCompleted.title"), tToast("deliberationCompleted.message"), {
+        category: "issue",
+      });
+    },
+    onMutate: () => {
+      toast.info(tToast("deliberationStarted.title"), tToast("deliberationStarted.message"), {
+        category: "issue",
+        duration: 3000,
+      });
     },
   });
 
