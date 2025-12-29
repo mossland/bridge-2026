@@ -53,6 +53,13 @@ BRIDGE 2026은 Mossland의 MOC 토큰 홀더를 위한 Physical AI 거버넌스 
   - 입장 변경 기록 및 이유 문서화
   - 조기 종료 (높은 합의 도달 시)
   - 실시간 WebSocket 업데이트
+- [x] **에이전트 학습 시스템**
+  - 과거 결정 히스토리 DB 저장
+  - 에이전트별 성과 추적 (정확도, 신뢰도)
+  - 심의 시 히스토리컬 컨텍스트 제공
+  - 카테고리별 성공률 분석
+  - 결과 피드백 루프 (실행 후 학습)
+  - 에이전트 신뢰도 점수 자동 업데이트
 
 #### Layer 3: Human Governance (인간 거버넌스)
 - [x] **VotingSystem**
@@ -169,7 +176,8 @@ BRIDGE 2026은 Mossland의 MOC 토큰 홀더를 위한 Physical AI 거버넌스 
 
 | 커밋 | 작업 내용 |
 |------|----------|
-| (pending) | 모바일 반응형 최적화 |
+| (pending) | 에이전트 학습 시스템 및 피드백 루프 구현 |
+| `3d0850a` | 모바일 반응형 최적화 |
 | `eb726e1` | 토스트 알림 시스템 고도화 |
 | `99b96c4` | 에이전트 심의 시스템 고도화 및 UI/UX 개선 |
 | `1550793` | 신호 페이지 검색 및 카테고리 필터 추가 |
@@ -191,8 +199,8 @@ BRIDGE 2026은 Mossland의 MOC 토큰 홀더를 위한 Physical AI 거버넌스 
 - [ ] 실행 트랜잭션 생성
 
 #### 에이전트 고도화
-- [ ] 에이전트별 학습 데이터 수집
-- [ ] 과거 결정 기반 컨텍스트 제공
+- [x] ~~에이전트별 학습 데이터 수집~~ (완료)
+- [x] ~~과거 결정 기반 컨텍스트 제공~~ (완료)
 - [x] ~~에이전트 간 토론 기능~~ (완료)
 - [x] ~~반대 의견 상세 분석~~ (완료)
 
@@ -299,6 +307,7 @@ NEXT_PUBLIC_WALLET_CONNECT_ID=...
 |------|------|
 | `apps/api/src/index.ts` | API 엔드포인트 |
 | `apps/api/src/db.ts` | SQLite 데이터베이스 |
+| `apps/api/src/learning.ts` | 에이전트 학습 서비스 |
 | `apps/web/src/app/*/page.tsx` | 각 페이지 UI |
 | `apps/web/src/lib/api.ts` | API 클라이언트 |
 | `apps/web/src/components/Toast.tsx` | 토스트 알림 컴포넌트 |

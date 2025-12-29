@@ -15,6 +15,14 @@ import {
   deserializeIssue,
 } from "./db.js";
 
+// Import learning service
+import {
+  enrichContextWithHistory,
+  recordDecision,
+  recordOutcomeByIssueId,
+  getAgentTrustScores,
+} from "./learning.js";
+
 // Import ORACLE modules
 import {
   SignalRegistry,
@@ -420,9 +428,39 @@ app.post("/api/deliberate", async (req, res) => {
     if (!issue) {
       return res.status(400).json({ error: "Issue is required" });
     }
-    const decisionPacket = await moderator.deliberate(issue, context || {});
+
+    // Enrich context with historical data for agent learning
+    const enrichedContext = enrichContextWithHistory(
+      issue.category || "general",
+      issue.priority || "medium",
+      context || {}
+    );
+
+    const decisionPacket = await moderator.deliberate(issue, enrichedContext);
+
+    // Record decision for learning
+    if (decisionPacket) {
+      const agentOpinions = Object.entries(decisionPacket.agents || {}).map(
+        ([role, opinion]: [string, any]) => ({
+          role,
+          stance: opinion.stance,
+          confidence: opinion.confidence,
+        })
+      );
+
+      recordDecision(
+        issue.id || `issue-${Date.now()}`,
+        issue.category || "general",
+        issue.priority || "medium",
+        decisionPacket.consensusScore || 0,
+        decisionPacket.recommendation?.type || "investigation",
+        agentOpinions
+      );
+    }
+
     res.json({ decisionPacket });
   } catch (error) {
+    console.error("Failed to deliberate:", error);
     res.status(500).json({ error: "Failed to deliberate" });
   }
 });
@@ -435,10 +473,17 @@ app.post("/api/debate", async (req, res) => {
       return res.status(400).json({ error: "Issue is required" });
     }
 
+    // Enrich context with historical data for agent learning
+    const enrichedContext = enrichContextWithHistory(
+      issue.category || "general",
+      issue.priority || "medium",
+      context || {}
+    );
+
     // Conduct the debate with real-time updates via WebSocket
     const debateSession = await moderator.conductDebate(
       issue,
-      context || {},
+      enrichedContext,
       maxRounds,
       (round, session) => {
         // Emit real-time updates for each round
@@ -464,6 +509,26 @@ app.post("/api/debate", async (req, res) => {
 
     // Also generate a decision packet from the debate
     const decisionPacket = moderator.getDecisionPacketFromDebate(debateSession);
+
+    // Record decision for learning
+    if (decisionPacket) {
+      const agentOpinions = Object.entries(decisionPacket.agents || {}).map(
+        ([role, opinion]: [string, any]) => ({
+          role,
+          stance: opinion.stance,
+          confidence: opinion.confidence,
+        })
+      );
+
+      recordDecision(
+        issue.id || `issue-${Date.now()}`,
+        issue.category || "general",
+        issue.priority || "medium",
+        decisionPacket.consensusScore || debateSession.finalConsensusScore || 0,
+        decisionPacket.recommendation?.type || "investigation",
+        agentOpinions
+      );
+    }
 
     // Emit completion event
     io.emit("debate:completed", {
@@ -683,6 +748,24 @@ app.post("/api/proposals/:id/execute", async (req, res) => {
     if (dp?.agents) {
       for (const agentId of Object.keys(dp.agents)) {
         trustManager.recordOutcome(agentId, "agent", proof);
+      }
+    }
+
+    // Record outcome for agent learning feedback loop
+    // Find the decision by issue_id and update with outcome
+    const issueId = dp?.issue?.id;
+    if (issueId && proof) {
+      try {
+        const recorded = recordOutcomeByIssueId(
+          issueId,
+          proof.successRate,
+          proof.kpiResults
+        );
+        if (recorded) {
+          console.log(`📊 Recorded learning outcome for issue ${issueId}: ${(proof.successRate * 100).toFixed(0)}% success`);
+        }
+      } catch (err) {
+        console.warn("Could not record learning outcome:", err);
       }
     }
 

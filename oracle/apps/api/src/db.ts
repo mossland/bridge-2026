@@ -81,6 +81,56 @@ db.exec(`
     updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (issue_id) REFERENCES issues(id)
   );
+
+  -- Decision history for agent learning
+  CREATE TABLE IF NOT EXISTS decision_history (
+    id TEXT PRIMARY KEY,
+    issue_id TEXT NOT NULL,
+    category TEXT NOT NULL,
+    priority TEXT NOT NULL,
+    consensus_score REAL,
+    recommendation_type TEXT,
+    agent_opinions TEXT,
+    outcome_status TEXT DEFAULT 'pending',
+    outcome_success_rate REAL,
+    kpi_results TEXT,
+    created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+    outcome_recorded_at TEXT,
+    FOREIGN KEY (issue_id) REFERENCES issues(id)
+  );
+
+  CREATE INDEX IF NOT EXISTS idx_decision_history_category ON decision_history(category);
+  CREATE INDEX IF NOT EXISTS idx_decision_history_outcome ON decision_history(outcome_status);
+
+  -- Agent performance tracking
+  CREATE TABLE IF NOT EXISTS agent_performance (
+    id TEXT PRIMARY KEY,
+    agent_id TEXT NOT NULL,
+    agent_role TEXT NOT NULL,
+    decision_id TEXT NOT NULL,
+    category TEXT NOT NULL,
+    stance TEXT NOT NULL,
+    confidence REAL NOT NULL,
+    outcome_correct INTEGER,
+    accuracy_delta REAL,
+    recorded_at TEXT DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (decision_id) REFERENCES decision_history(id)
+  );
+
+  CREATE INDEX IF NOT EXISTS idx_agent_performance_agent ON agent_performance(agent_id);
+  CREATE INDEX IF NOT EXISTS idx_agent_performance_role ON agent_performance(agent_role);
+  CREATE INDEX IF NOT EXISTS idx_agent_performance_category ON agent_performance(category);
+
+  -- Agent trust scores (aggregated)
+  CREATE TABLE IF NOT EXISTS agent_trust_scores (
+    agent_id TEXT PRIMARY KEY,
+    agent_role TEXT NOT NULL,
+    overall_score REAL DEFAULT 50,
+    total_decisions INTEGER DEFAULT 0,
+    correct_decisions INTEGER DEFAULT 0,
+    accuracy_by_category TEXT,
+    last_updated TEXT DEFAULT CURRENT_TIMESTAMP
+  );
 `);
 
 console.log(`📦 Database initialized at ${DB_PATH}`);
@@ -194,6 +244,138 @@ export const issueDb = {
   `),
 
   clear: db.prepare(`DELETE FROM issues`),
+};
+
+// Decision history operations (for agent learning)
+export const decisionHistoryDb = {
+  insert: db.prepare(`
+    INSERT INTO decision_history (id, issue_id, category, priority, consensus_score, recommendation_type, agent_opinions, outcome_status)
+    VALUES (@id, @issueId, @category, @priority, @consensusScore, @recommendationType, @agentOpinions, @outcomeStatus)
+  `),
+
+  updateOutcome: db.prepare(`
+    UPDATE decision_history SET
+      outcome_status = @outcomeStatus,
+      outcome_success_rate = @outcomeSuccessRate,
+      kpi_results = @kpiResults,
+      outcome_recorded_at = CURRENT_TIMESTAMP
+    WHERE id = @id
+  `),
+
+  getById: db.prepare(`SELECT * FROM decision_history WHERE id = ?`),
+
+  getByIssueId: db.prepare(`
+    SELECT * FROM decision_history WHERE issue_id = ? ORDER BY created_at DESC LIMIT 1
+  `),
+
+  getByCategory: db.prepare(`
+    SELECT * FROM decision_history
+    WHERE category = ? AND outcome_status = 'completed'
+    ORDER BY created_at DESC LIMIT ?
+  `),
+
+  getSimilar: db.prepare(`
+    SELECT * FROM decision_history
+    WHERE category = ? AND outcome_status = 'completed'
+    ORDER BY created_at DESC LIMIT ?
+  `),
+
+  getRecent: db.prepare(`
+    SELECT * FROM decision_history ORDER BY created_at DESC LIMIT ?
+  `),
+
+  getWithOutcomes: db.prepare(`
+    SELECT * FROM decision_history
+    WHERE outcome_status = 'completed'
+    ORDER BY created_at DESC LIMIT ?
+  `),
+
+  getCategorySuccessRate: db.prepare(`
+    SELECT
+      category,
+      COUNT(*) as total,
+      AVG(outcome_success_rate) as avg_success_rate
+    FROM decision_history
+    WHERE outcome_status = 'completed'
+    GROUP BY category
+  `),
+
+  count: db.prepare(`SELECT COUNT(*) as count FROM decision_history`),
+};
+
+// Agent performance operations
+export const agentPerformanceDb = {
+  insert: db.prepare(`
+    INSERT INTO agent_performance (id, agent_id, agent_role, decision_id, category, stance, confidence, outcome_correct, accuracy_delta)
+    VALUES (@id, @agentId, @agentRole, @decisionId, @category, @stance, @confidence, @outcomeCorrect, @accuracyDelta)
+  `),
+
+  getByAgent: db.prepare(`
+    SELECT * FROM agent_performance WHERE agent_id = ? ORDER BY recorded_at DESC LIMIT ?
+  `),
+
+  getByRole: db.prepare(`
+    SELECT * FROM agent_performance WHERE agent_role = ? ORDER BY recorded_at DESC LIMIT ?
+  `),
+
+  getAgentAccuracy: db.prepare(`
+    SELECT
+      agent_role,
+      COUNT(*) as total_decisions,
+      SUM(CASE WHEN outcome_correct = 1 THEN 1 ELSE 0 END) as correct_decisions,
+      AVG(confidence) as avg_confidence,
+      AVG(CASE WHEN outcome_correct IS NOT NULL THEN accuracy_delta ELSE NULL END) as avg_accuracy_delta
+    FROM agent_performance
+    WHERE agent_role = ?
+    GROUP BY agent_role
+  `),
+
+  getAgentAccuracyByCategory: db.prepare(`
+    SELECT
+      agent_role,
+      category,
+      COUNT(*) as total_decisions,
+      SUM(CASE WHEN outcome_correct = 1 THEN 1 ELSE 0 END) as correct_decisions,
+      AVG(confidence) as avg_confidence
+    FROM agent_performance
+    WHERE agent_role = ? AND category = ?
+    GROUP BY agent_role, category
+  `),
+
+  getRoleStats: db.prepare(`
+    SELECT
+      agent_role,
+      COUNT(*) as total_decisions,
+      SUM(CASE WHEN outcome_correct = 1 THEN 1 ELSE 0 END) as correct_decisions,
+      AVG(confidence) as avg_confidence
+    FROM agent_performance
+    WHERE outcome_correct IS NOT NULL
+    GROUP BY agent_role
+  `),
+};
+
+// Agent trust scores operations
+export const agentTrustDb = {
+  upsert: db.prepare(`
+    INSERT INTO agent_trust_scores (agent_id, agent_role, overall_score, total_decisions, correct_decisions, accuracy_by_category, last_updated)
+    VALUES (@agentId, @agentRole, @overallScore, @totalDecisions, @correctDecisions, @accuracyByCategory, CURRENT_TIMESTAMP)
+    ON CONFLICT(agent_id) DO UPDATE SET
+      overall_score = @overallScore,
+      total_decisions = @totalDecisions,
+      correct_decisions = @correctDecisions,
+      accuracy_by_category = @accuracyByCategory,
+      last_updated = CURRENT_TIMESTAMP
+  `),
+
+  getByAgent: db.prepare(`SELECT * FROM agent_trust_scores WHERE agent_id = ?`),
+
+  getByRole: db.prepare(`SELECT * FROM agent_trust_scores WHERE agent_role = ?`),
+
+  getAll: db.prepare(`SELECT * FROM agent_trust_scores ORDER BY overall_score DESC`),
+
+  getLeaderboard: db.prepare(`
+    SELECT * FROM agent_trust_scores ORDER BY overall_score DESC LIMIT ?
+  `),
 };
 
 // Helper to serialize/deserialize JSON fields

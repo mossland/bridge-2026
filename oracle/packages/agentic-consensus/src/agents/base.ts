@@ -156,6 +156,9 @@ export abstract class BaseAgent implements GovernanceAgent {
       .map((e) => `- ${e.description}`)
       .join("\n") || "(No evidence available)";
 
+    // Build historical context section if available
+    const historicalSection = this.buildHistoricalSection(context);
+
     return `
 ## Issue for Deliberation
 
@@ -169,9 +172,9 @@ ${evidenceSection}
 
 ### Signals
 ${signalsSection}
-
+${historicalSection}
 ### Context
-${JSON.stringify(context, null, 2)}
+${JSON.stringify(this.filterContextForPrompt(context), null, 2)}
 
 ---
 
@@ -182,6 +185,8 @@ Please provide your analysis as a ${this.role} agent. Include:
 4. Any concerns
 5. Recommendations
 
+${historicalSection ? "Consider the historical patterns and your past performance when forming your opinion." : ""}
+
 Respond in JSON format:
 {
   "stance": "support",
@@ -191,6 +196,79 @@ Respond in JSON format:
   "recommendations": ["..."]
 }
 `;
+  }
+
+  /**
+   * Build historical context section for prompt
+   */
+  protected buildHistoricalSection(context: AgentContext): string {
+    const ctx = context as any; // Extended context with learning data
+
+    if (!ctx.historicalDecisions || ctx.historicalDecisions.length === 0) {
+      return "";
+    }
+
+    const sections: string[] = [];
+
+    // Historical decisions for this category
+    if (ctx.historicalDecisions && ctx.historicalDecisions.length > 0) {
+      const decisionsText = ctx.historicalDecisions
+        .slice(0, 3)
+        .map((d: any) => {
+          const myOpinion = d.agentOpinions?.find((o: any) => o.agentRole === this.role);
+          const outcomeText = d.outcomeStatus === "completed"
+            ? `${(d.outcomeSuccessRate * 100).toFixed(0)}% success`
+            : "pending";
+          const stanceText = myOpinion ? `, your stance: ${myOpinion.stance}` : "";
+          return `- [${d.priority}] Consensus: ${(d.consensusScore * 100).toFixed(0)}%, Outcome: ${outcomeText}${stanceText}`;
+        })
+        .join("\n");
+
+      sections.push(`### Historical Context (Similar ${ctx.historicalDecisions[0]?.category || "category"} issues)
+${decisionsText}`);
+    }
+
+    // Agent performance feedback
+    if (ctx.agentFeedback && ctx.agentFeedback.length > 0) {
+      const myFeedback = ctx.agentFeedback.find((f: any) => f.agentRole === this.role);
+      if (myFeedback && myFeedback.totalDecisions > 0) {
+        sections.push(`### Your Performance History
+- Accuracy: ${(myFeedback.accuracy * 100).toFixed(0)}% (${myFeedback.correctDecisions}/${myFeedback.totalDecisions} decisions)
+- Average confidence: ${(myFeedback.avgConfidence * 100).toFixed(0)}%`);
+      }
+    }
+
+    // Category success rate
+    if (ctx.categorySuccessRate !== undefined) {
+      sections.push(`### Category Pattern
+- Average success rate for similar issues: ${(ctx.categorySuccessRate * 100).toFixed(0)}%`);
+    }
+
+    // Identified patterns
+    if (ctx.patterns && ctx.patterns.length > 0) {
+      sections.push(`### Identified Patterns
+${ctx.patterns.map((p: string) => `- ${p}`).join("\n")}`);
+    }
+
+    if (sections.length === 0) {
+      return "";
+    }
+
+    return "\n" + sections.join("\n\n") + "\n";
+  }
+
+  /**
+   * Filter context for prompt (remove large arrays to save tokens)
+   */
+  protected filterContextForPrompt(context: AgentContext): any {
+    const { historicalDecisions, agentFeedback, patterns, ...rest } = context as any;
+    return {
+      ...rest,
+      hasHistoricalData: !!historicalDecisions && historicalDecisions.length > 0,
+      agentFeedbackSummary: agentFeedback
+        ? agentFeedback.map((f: any) => ({ role: f.agentRole, accuracy: f.accuracy }))
+        : undefined,
+    };
   }
 
   protected parseResponse(issueId: string, response: string): AgentOpinion {
