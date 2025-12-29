@@ -142,3 +142,5 @@ interface DelegationPolicy {
 4. **정기 검토**: 위임 정책은 정기적으로 사용자에게 재확인 요청
 
 
+
+

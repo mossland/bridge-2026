@@ -17,3 +17,5 @@ CREATE EXTENSION IF NOT EXISTS "pg_trgm";  -- 텍스트 검색용
 -- 예: 기본 설정, 시스템 사용자 등
 
 
+
+

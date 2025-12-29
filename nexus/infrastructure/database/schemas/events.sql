@@ -20,3 +20,5 @@ CREATE INDEX IF NOT EXISTS idx_events_data_gin ON events USING GIN(data);
 -- CREATE INDEX IF NOT EXISTS idx_events_type_timestamp ON events(type, timestamp);
 
 
+
+

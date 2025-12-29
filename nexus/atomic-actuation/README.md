@@ -56,3 +56,5 @@ Human Governance에서 제안이 통과되면, Atomic Actuation이 실행을 담
 - **원자성 보장**: 트랜잭션 관리, 보상 트랜잭션
 
 
+
+

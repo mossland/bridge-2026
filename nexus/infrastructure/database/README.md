@@ -41,3 +41,5 @@ psql -U postgres -d bridge2026 -f migrations/001_initial_schema.sql
 - `pg_trgm`: 텍스트 검색 및 유사도 계산용
 
 
+
+

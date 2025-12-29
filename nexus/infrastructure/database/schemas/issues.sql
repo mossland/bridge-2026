@@ -40,3 +40,5 @@ CREATE INDEX IF NOT EXISTS idx_issue_groups_priority_score ON issue_groups(prior
 CREATE INDEX IF NOT EXISTS idx_issue_groups_issue_ids ON issue_groups USING GIN(issue_ids);
 
 
+
+
