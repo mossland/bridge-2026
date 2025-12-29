@@ -1,38 +1,112 @@
-import Anthropic from "@anthropic-ai/sdk";
 import {
   GovernanceAgent,
   AgentRole,
   AgentOpinion,
   DetectedIssue,
   AgentContext,
-  generateId,
   now,
 } from "@oracle/core";
+import { LLMClient } from "../llm/index.js";
+import type { LLMConfig } from "../llm/index.js";
 
-export interface LLMConfig {
-  apiKey?: string;
-  model?: string;
-  maxTokens?: number;
-}
+export type { LLMConfig };
+
+// Category mapping for each agent role
+export const AGENT_CATEGORY_MAPPING: Record<AgentRole, string[]> = {
+  risk: [
+    "security",
+    "vulnerability",
+    "network_health",
+    "gas_usage",
+    "protocol_tvl",
+    "anomaly",
+  ],
+  treasury: [
+    "token_price",
+    "moc_price",
+    "moc_market",
+    "moc_blockchain",
+    "protocol_tvl",
+    "treasury",
+    "transaction_volume",
+  ],
+  community: [
+    "vote_turnout",
+    "governance_participation",
+    "community_sentiment",
+    "delegation_changes",
+    "proposal_activity",
+    "medium_activity",
+    "medium_post",
+    "twitter_activity",
+    "social",
+  ],
+  product: [
+    "github_commit",
+    "github_activity",
+    "mossland_disclosure",
+    "product_update",
+    "feature",
+    "roadmap",
+  ],
+  moderator: [], // Moderator doesn't have specific categories
+};
 
 export abstract class BaseAgent implements GovernanceAgent {
   abstract readonly id: string;
   abstract readonly role: AgentRole;
   protected abstract readonly systemPrompt: string;
 
-  protected client: Anthropic | null = null;
-  protected config: LLMConfig;
+  protected llmClient: LLMClient;
+  protected relevantCategories: string[];
 
   constructor(config: LLMConfig = {}) {
-    this.config = {
-      model: config.model || "claude-3-5-sonnet-20241022",
+    this.llmClient = new LLMClient({
+      ...config,
       maxTokens: config.maxTokens || 2048,
-      apiKey: config.apiKey,
-    };
+    });
+    this.relevantCategories = [];
+  }
 
-    if (config.apiKey) {
-      this.client = new Anthropic({ apiKey: config.apiKey });
+  /**
+   * Check if a category is relevant to this agent's expertise
+   */
+  protected isCategoryRelevant(category: string): boolean {
+    const agentCategories = AGENT_CATEGORY_MAPPING[this.role] || [];
+    const lowerCategory = category.toLowerCase();
+    return agentCategories.some(c =>
+      lowerCategory.includes(c) || c.includes(lowerCategory)
+    );
+  }
+
+  /**
+   * Get relevance score (0-1) for how well this agent matches the category
+   */
+  protected getCategoryRelevanceScore(category: string): number {
+    if (this.isCategoryRelevant(category)) {
+      return 1.0; // Full relevance
     }
+    // Check for partial matches
+    const agentCategories = AGENT_CATEGORY_MAPPING[this.role] || [];
+    const lowerCategory = category.toLowerCase();
+    for (const c of agentCategories) {
+      if (lowerCategory.split("_").some(part => c.includes(part))) {
+        return 0.5; // Partial relevance
+      }
+    }
+    return 0.3; // Low relevance but still can contribute
+  }
+
+  get isLLMEnabled(): boolean {
+    return this.llmClient.isAvailable;
+  }
+
+  get llmProvider(): string {
+    return this.llmClient.currentProvider;
+  }
+
+  get llmModel(): string {
+    return this.llmClient.currentModel;
   }
 
   async deliberate(
@@ -41,8 +115,13 @@ export abstract class BaseAgent implements GovernanceAgent {
   ): Promise<AgentOpinion> {
     const prompt = this.buildPrompt(issue, context);
 
-    if (this.client) {
-      return this.deliberateWithLLM(issue, prompt);
+    if (this.llmClient.isAvailable) {
+      try {
+        return await this.deliberateWithLLM(issue, prompt);
+      } catch (error) {
+        console.error(`[${this.id}] LLM deliberation failed, falling back to rule-based:`, error);
+        return this.deliberateRuleBased(issue, context);
+      }
     }
 
     // Fallback to rule-based deliberation
@@ -53,19 +132,8 @@ export abstract class BaseAgent implements GovernanceAgent {
     issue: DetectedIssue,
     prompt: string
   ): Promise<AgentOpinion> {
-    const response = await this.client!.messages.create({
-      model: this.config.model!,
-      max_tokens: this.config.maxTokens!,
-      system: this.systemPrompt,
-      messages: [{ role: "user", content: prompt }],
-    });
-
-    const content = response.content[0];
-    if (content.type !== "text") {
-      throw new Error("Unexpected response type from LLM");
-    }
-
-    return this.parseResponse(issue.id, content.text);
+    const response = await this.llmClient.chat(this.systemPrompt, prompt);
+    return this.parseResponse(issue.id, response.content);
   }
 
   protected abstract deliberateRuleBased(
@@ -74,6 +142,17 @@ export abstract class BaseAgent implements GovernanceAgent {
   ): AgentOpinion;
 
   protected buildPrompt(issue: DetectedIssue, context: AgentContext): string {
+    // Handle signals - may be full objects or just IDs from database
+    const signals = issue.signals || [];
+    const signalsSection = signals.length > 0
+      ? signals.slice(0, 5).map((s: any) => `- [${s.severity}] ${s.description} (value: ${s.value})`).join("\n")
+      : "(Signal data not available - refer to evidence for details)";
+
+    // Handle evidence safely
+    const evidenceSection = (issue.evidence || [])
+      .map((e) => `- ${e.description}`)
+      .join("\n") || "(No evidence available)";
+
     return `
 ## Issue for Deliberation
 
@@ -83,10 +162,10 @@ export abstract class BaseAgent implements GovernanceAgent {
 **Description:** ${issue.description}
 
 ### Evidence
-${issue.evidence.map((e) => `- ${e.description}`).join("\n")}
+${evidenceSection}
 
 ### Signals
-${issue.signals.slice(0, 5).map((s) => `- [${s.severity}] ${s.description} (value: ${s.value})`).join("\n")}
+${signalsSection}
 
 ### Context
 ${JSON.stringify(context, null, 2)}

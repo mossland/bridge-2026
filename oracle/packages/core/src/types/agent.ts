@@ -21,6 +21,13 @@ export const StanceSchema = z.enum([
 ]);
 export type Stance = z.infer<typeof StanceSchema>;
 
+// Recommended proposal type based on consensus
+export const ProposalTypeSchema = z.enum([
+  "action",        // High confidence: direct action proposal
+  "investigation", // Low confidence: needs more research/discussion
+]);
+export type ProposalType = z.infer<typeof ProposalTypeSchema>;
+
 // Agent opinion on an issue
 export const AgentOpinionSchema = z.object({
   agentId: z.string(),
@@ -40,6 +47,9 @@ export const DecisionPacketSchema = z.object({
   id: z.string().uuid(),
   issueId: z.string().uuid(),
   issue: DetectedIssueSchema,
+  // Consensus metrics
+  consensusScore: z.number().min(0).max(1), // 0-1 score indicating agent agreement level
+  recommendedProposalType: ProposalTypeSchema, // action or investigation based on score
   recommendation: z.object({
     action: z.string(),
     rationale: z.string(),

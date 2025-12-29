@@ -46,6 +46,8 @@ db.exec(`
     category TEXT NOT NULL,
     priority TEXT NOT NULL,
     status TEXT NOT NULL DEFAULT 'detected',
+    kind TEXT DEFAULT 'issue',
+    direction TEXT,
     detected_at TEXT NOT NULL,
     resolved_at TEXT,
     signal_ids TEXT,
@@ -55,6 +57,9 @@ db.exec(`
     created_at TEXT DEFAULT CURRENT_TIMESTAMP,
     updated_at TEXT DEFAULT CURRENT_TIMESTAMP
   );
+
+  -- Add columns if they don't exist (for existing databases)
+  -- SQLite doesn't have IF NOT EXISTS for ALTER TABLE, so we handle this differently
 
   CREATE INDEX IF NOT EXISTS idx_issues_status ON issues(status);
   CREATE INDEX IF NOT EXISTS idx_issues_priority ON issues(priority);
@@ -118,11 +123,23 @@ export const signalDb = {
   clear: db.prepare(`DELETE FROM signals`),
 };
 
+// Migrate existing database: add kind and direction columns if they don't exist
+try {
+  db.exec(`ALTER TABLE issues ADD COLUMN kind TEXT DEFAULT 'issue'`);
+} catch (e) {
+  // Column already exists, ignore
+}
+try {
+  db.exec(`ALTER TABLE issues ADD COLUMN direction TEXT`);
+} catch (e) {
+  // Column already exists, ignore
+}
+
 // Issue operations
 export const issueDb = {
   insert: db.prepare(`
-    INSERT INTO issues (id, title, description, category, priority, status, detected_at, signal_ids, evidence, suggested_actions)
-    VALUES (@id, @title, @description, @category, @priority, @status, @detectedAt, @signalIds, @evidence, @suggestedActions)
+    INSERT INTO issues (id, title, description, category, priority, status, kind, direction, detected_at, signal_ids, evidence, suggested_actions)
+    VALUES (@id, @title, @description, @category, @priority, @status, @kind, @direction, @detectedAt, @signalIds, @evidence, @suggestedActions)
   `),
 
   update: db.prepare(`
@@ -218,6 +235,8 @@ export function serializeIssue(issue: any) {
     category: issue.category,
     priority: issue.priority,
     status: issue.status,
+    kind: issue.kind || "issue",
+    direction: issue.direction || null,
     detectedAt: issue.detectedAt instanceof Date ? issue.detectedAt.toISOString() : issue.detectedAt,
     signalIds: JSON.stringify(issue.signals?.map((s: any) => s.id) || []),
     evidence: JSON.stringify(issue.evidence || []),
@@ -233,6 +252,8 @@ export function deserializeIssue(row: any) {
     category: row.category,
     priority: row.priority,
     status: row.status,
+    kind: row.kind || "issue",
+    direction: row.direction || null,
     detectedAt: row.detected_at,
     resolvedAt: row.resolved_at,
     signalIds: row.signal_ids ? JSON.parse(row.signal_ids) : [],

@@ -2,6 +2,8 @@ import {
   IssueDetector,
   NormalizedSignal,
   DetectedIssue,
+  TrendDirection,
+  IssueKind,
   generateId,
   now,
 } from "@oracle/core";
@@ -18,7 +20,11 @@ export abstract class BaseDetector implements IssueDetector {
     priority: DetectedIssue["priority"],
     signals: NormalizedSignal[],
     evidence: DetectedIssue["evidence"],
-    suggestedActions?: string[]
+    suggestedActions?: string[],
+    options?: {
+      direction?: TrendDirection;
+      kind?: IssueKind;
+    }
   ): DetectedIssue {
     return {
       id: generateId(),
@@ -27,6 +33,8 @@ export abstract class BaseDetector implements IssueDetector {
       category,
       priority,
       status: "detected",
+      kind: options?.kind ?? "issue",
+      direction: options?.direction,
       detectedAt: now(),
       signals,
       evidence,

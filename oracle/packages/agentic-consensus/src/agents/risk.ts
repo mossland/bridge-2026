@@ -30,39 +30,52 @@ Your analysis should help protect the system and its users from harm.`;
     const concerns: string[] = [];
     const recommendations: string[] = [];
 
+    // Check category relevance
+    const categoryRelevance = this.getCategoryRelevanceScore(issue.category);
+    const isCategoryRelevant = this.isCategoryRelevant(issue.category);
+
     // Rule-based risk assessment
-    const hasHighSeveritySignals = issue.signals.some(
+    const signals = issue.signals || [];
+    const hasHighSeveritySignals = signals.some(
       (s) => s.severity === "critical" || s.severity === "high"
     );
 
     const hasSecurityKeywords = [issue.title, issue.description]
       .join(" ")
       .toLowerCase()
-      .match(/security|vulnerability|attack|exploit|breach|leak/);
+      .match(/security|vulnerability|attack|exploit|breach|leak|network_health|gas_usage|protocol_tvl/);
+
+    // Boost confidence when category is relevant to this agent
+    const confidenceBoost = isCategoryRelevant ? 0.2 : 0;
 
     if (issue.priority === "urgent") {
       stance = "strongly_support";
-      confidence = 0.9;
+      confidence = Math.min(0.95, 0.85 + confidenceBoost);
       concerns.push("Urgent priority requires immediate attention");
       recommendations.push("Implement emergency response procedures");
-    } else if (hasSecurityKeywords) {
+    } else if (hasSecurityKeywords || isCategoryRelevant) {
       stance = "strongly_support";
-      confidence = 0.85;
-      concerns.push("Potential security implications detected");
+      confidence = Math.min(0.95, 0.75 + confidenceBoost);
+      if (isCategoryRelevant) {
+        concerns.push(`${issue.category} falls within risk management domain`);
+      }
+      if (hasSecurityKeywords) {
+        concerns.push("Potential security implications detected");
+      }
       recommendations.push("Conduct thorough security review");
       recommendations.push("Consider temporary protective measures");
     } else if (hasHighSeveritySignals) {
       stance = "support";
-      confidence = 0.7;
+      confidence = Math.min(0.9, 0.65 + confidenceBoost);
       concerns.push("High severity signals require attention");
       recommendations.push("Monitor closely for escalation");
     } else if (issue.priority === "high") {
       stance = "support";
-      confidence = 0.65;
+      confidence = Math.min(0.85, 0.6 + confidenceBoost);
       concerns.push("Elevated risk level");
     } else {
       stance = "neutral";
-      confidence = 0.5;
+      confidence = Math.max(0.4, 0.5 * categoryRelevance);
       concerns.push("Standard risk profile");
       recommendations.push("Continue routine monitoring");
     }
@@ -71,13 +84,55 @@ Your analysis should help protect the system and its users from harm.`;
     concerns.push("All actions carry inherent implementation risk");
     recommendations.push("Ensure proper testing before deployment");
 
+    // Build context-aware reasoning
+    const reasoning = this.buildReasoning(issue, stance, hasSecurityKeywords, hasHighSeveritySignals, isCategoryRelevant);
+
     return this.createOpinion(
       issue.id,
       stance,
       confidence,
-      `Risk assessment based on priority (${issue.priority}) and signal severity analysis.`,
+      reasoning,
       concerns,
       recommendations
     );
+  }
+
+  private buildReasoning(
+    issue: DetectedIssue,
+    stance: AgentOpinion["stance"],
+    hasSecurityKeywords: RegExpMatchArray | null,
+    hasHighSeveritySignals: boolean,
+    isCategoryRelevant: boolean
+  ): string {
+    const parts: string[] = [];
+    const signals = issue.signals || [];
+
+    // Describe the issue being analyzed
+    parts.push(`Analyzing "${issue.title}" (${issue.category} issue, ${issue.priority} priority).`);
+
+    // Explain category relevance
+    if (isCategoryRelevant) {
+      parts.push(`This ${issue.category} issue falls within my risk assessment expertise.`);
+    }
+
+    // Explain the stance
+    if (hasSecurityKeywords) {
+      parts.push("Security-related keywords detected require heightened vigilance.");
+    }
+    if (hasHighSeveritySignals) {
+      const highCount = signals.filter(s => s.severity === "critical" || s.severity === "high").length;
+      parts.push(`${highCount} high/critical severity signals identified.`);
+    }
+    if (issue.priority === "urgent") {
+      parts.push("Urgent priority warrants immediate risk mitigation measures.");
+    }
+
+    // Add signal context if available
+    if (signals.length > 0) {
+      const topSignal = signals[0];
+      parts.push(`Primary signal: ${topSignal.description || topSignal.category} (severity: ${topSignal.severity}).`);
+    }
+
+    return parts.join(" ");
   }
 }

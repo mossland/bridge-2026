@@ -126,7 +126,17 @@
     "tally": "Tally Votes",
     "tallying": "Tallying...",
     "execute": "Execute",
-    "executing": "Executing..."
+    "executing": "Executing...",
+    "purpose": "Purpose",
+    "evidenceCount": "Evidence",
+    "consensus": "Agent Consensus",
+    "score": "Consensus Score",
+    "typeAction": "Action Proposal",
+    "typeInvestigation": "Investigation Proposal",
+    "agentOpinions": "Agent Opinions",
+    "goals": "Goals & KPIs",
+    "target": "Target",
+    "alternatives": "Alternatives"
   },
   "delegation": {
     "title": "Delegation Policies",

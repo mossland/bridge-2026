@@ -16,6 +16,14 @@ export const IssueStatusSchema = z.enum([
 ]);
 export type IssueStatus = z.infer<typeof IssueStatusSchema>;
 
+// Trend direction
+export const TrendDirectionSchema = z.enum(["increasing", "decreasing", "stable"]);
+export type TrendDirection = z.infer<typeof TrendDirectionSchema>;
+
+// Issue kind: issue requires action, insight is for learning/monitoring
+export const IssueKindSchema = z.enum(["issue", "insight"]);
+export type IssueKind = z.infer<typeof IssueKindSchema>;
+
 // Detected issue from inference mining
 export const DetectedIssueSchema = z.object({
   id: z.string().uuid(),
@@ -24,6 +32,8 @@ export const DetectedIssueSchema = z.object({
   category: z.string(),
   priority: IssuePrioritySchema,
   status: IssueStatusSchema,
+  kind: IssueKindSchema.default("issue"),
+  direction: TrendDirectionSchema.optional(),
   detectedAt: z.date(),
   signals: z.array(NormalizedSignalSchema),
   evidence: z.array(

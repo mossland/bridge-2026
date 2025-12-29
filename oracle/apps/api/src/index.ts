@@ -1,3 +1,4 @@
+import "dotenv/config";
 import express, { Express } from "express";
 import cors from "cors";
 import helmet from "helmet";
@@ -169,12 +170,30 @@ const thresholdDetector = new ThresholdDetector({
 const trendDetector = new TrendDetector();
 const proposalGenerator = new ProposalGenerator();
 
-// Initialize agents (without API key for now)
-const riskAgent = new RiskAgent();
-const treasuryAgent = new TreasuryAgent();
-const communityAgent = new CommunityAgent();
-const productAgent = new ProductAgent();
-const moderator = new Moderator();
+// LLM Configuration from environment
+const LLM_API_KEY = process.env.ANTHROPIC_API_KEY || process.env.OPENAI_API_KEY;
+const LLM_PROVIDER = process.env.LLM_PROVIDER as "anthropic" | "openai" | undefined;
+const LLM_MODEL = process.env.LLM_MODEL;
+
+const llmConfig = LLM_API_KEY ? {
+  apiKey: LLM_API_KEY,
+  provider: LLM_PROVIDER,
+  model: LLM_MODEL,
+} : {};
+
+// Initialize agents with LLM config
+const riskAgent = new RiskAgent(llmConfig);
+const treasuryAgent = new TreasuryAgent(llmConfig);
+const communityAgent = new CommunityAgent(llmConfig);
+const productAgent = new ProductAgent(llmConfig);
+const moderator = new Moderator(llmConfig);
+
+// Log LLM status
+if (LLM_API_KEY) {
+  console.log(`🤖 LLM enabled: ${moderator.llmProvider} (${moderator.llmModel})`);
+} else {
+  console.log("⚠️  LLM disabled: Set ANTHROPIC_API_KEY or OPENAI_API_KEY to enable");
+}
 
 moderator.registerAgent(riskAgent);
 moderator.registerAgent(treasuryAgent);
@@ -238,11 +257,26 @@ app.post("/api/signals/collect", async (req, res) => {
   }
 });
 
+// Helper to populate signals for an issue
+function populateIssueSignals(issue: any) {
+  if (issue.signalIds && issue.signalIds.length > 0) {
+    const signals = issue.signalIds
+      .map((id: string) => {
+        const row = signalDb.getById.get(id);
+        return row ? deserializeSignal(row) : null;
+      })
+      .filter((s: any) => s !== null);
+    return { ...issue, signals };
+  }
+  return { ...issue, signals: [] };
+}
+
 // Issue endpoints
 app.get("/api/issues", async (req, res) => {
   try {
     const limit = parseInt(req.query.limit as string) || 50;
     const status = req.query.status as string;
+    const includeSignals = req.query.includeSignals !== "false"; // Include signals by default
 
     let rows;
     if (status) {
@@ -251,7 +285,13 @@ app.get("/api/issues", async (req, res) => {
       rows = issueDb.getActive.all(limit);
     }
 
-    const issues = rows.map(deserializeIssue);
+    let issues = rows.map(deserializeIssue);
+
+    // Populate signals if requested
+    if (includeSignals) {
+      issues = issues.map(populateIssueSignals);
+    }
+
     res.json({ issues, count: issues.length });
   } catch (error) {
     console.error("Failed to fetch issues:", error);

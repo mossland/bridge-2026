@@ -1,15 +1,104 @@
-import { NormalizedSignal, DetectedIssue } from "@oracle/core";
+import { NormalizedSignal, DetectedIssue, TrendDirection, IssueKind } from "@oracle/core";
 import { BaseDetector } from "./base.js";
+
+// Metric configuration for category-specific behavior
+export interface MetricConfig {
+  // Whether increasing is positive (good) or negative (bad)
+  increasingIsPositive: boolean;
+  // Priority thresholds (multipliers of trendThreshold)
+  urgentThreshold: number;
+  highThreshold: number;
+  mediumThreshold: number;
+  // Whether to create issue or insight for positive changes
+  positiveAsInsight: boolean;
+}
+
+// Default metric configurations
+const DEFAULT_METRIC_CONFIGS: Record<string, MetricConfig> = {
+  // Token price: decreasing is bad, increasing is neutral/good
+  token_price: {
+    increasingIsPositive: true,
+    urgentThreshold: 5,
+    highThreshold: 3,
+    mediumThreshold: 2,
+    positiveAsInsight: true,
+  },
+  moc_price: {
+    increasingIsPositive: true,
+    urgentThreshold: 5,
+    highThreshold: 3,
+    mediumThreshold: 2,
+    positiveAsInsight: true,
+  },
+  // Vote turnout: increasing is good (healthy governance)
+  vote_turnout: {
+    increasingIsPositive: true,
+    urgentThreshold: 10, // Very high threshold - rarely urgent
+    highThreshold: 7,
+    mediumThreshold: 5,
+    positiveAsInsight: true, // Increasing vote turnout is insight, not issue
+  },
+  governance_participation: {
+    increasingIsPositive: true,
+    urgentThreshold: 10,
+    highThreshold: 7,
+    mediumThreshold: 5,
+    positiveAsInsight: true,
+  },
+  // Community sentiment: decreasing is bad
+  community_sentiment: {
+    increasingIsPositive: true,
+    urgentThreshold: 3,
+    highThreshold: 2,
+    mediumThreshold: 1.5,
+    positiveAsInsight: true,
+  },
+  // Protocol TVL: increasing is generally good
+  protocol_tvl: {
+    increasingIsPositive: true,
+    urgentThreshold: 5,
+    highThreshold: 3,
+    mediumThreshold: 2,
+    positiveAsInsight: true,
+  },
+  // Network gas: increasing is bad (expensive)
+  network_gas: {
+    increasingIsPositive: false,
+    urgentThreshold: 3,
+    highThreshold: 2,
+    mediumThreshold: 1.5,
+    positiveAsInsight: false,
+  },
+  // Transaction volume: increasing is generally good
+  transaction_volume: {
+    increasingIsPositive: true,
+    urgentThreshold: 10,
+    highThreshold: 7,
+    mediumThreshold: 5,
+    positiveAsInsight: true,
+  },
+};
+
+// Default config for unknown categories
+const DEFAULT_CONFIG: MetricConfig = {
+  increasingIsPositive: false, // Conservative: treat unknown increases as potentially bad
+  urgentThreshold: 5,
+  highThreshold: 3,
+  mediumThreshold: 2,
+  positiveAsInsight: false,
+};
 
 export interface TrendDetectorConfig {
   minDataPoints?: number;
-  trendThreshold?: number; // Minimum slope for trend detection
-  categories?: string[]; // Categories to monitor (empty = all)
+  trendThreshold?: number;
+  categories?: string[];
+  metricConfigs?: Record<string, MetricConfig>;
 }
 
 export class TrendDetector extends BaseDetector {
   readonly name = "TrendDetector";
   private config: TrendDetectorConfig;
+  private metricConfigs: Record<string, MetricConfig>;
 
   constructor(config: TrendDetectorConfig = {}) {
     super();
@@ -18,6 +107,24 @@ export class TrendDetector extends BaseDetector {
       trendThreshold: config.trendThreshold ?? 0.1,
       categories: config.categories ?? [],
     };
+    this.metricConfigs = {
+      ...DEFAULT_METRIC_CONFIGS,
+      ...(config.metricConfigs || {}),
+    };
+  }
+
+  private getMetricConfig(category: string): MetricConfig {
+    // Try exact match first
+    if (this.metricConfigs[category]) {
+      return this.metricConfigs[category];
+    }
+    // Try prefix match (e.g., "token_*" matches "token_price")
+    for (const [key, config] of Object.entries(this.metricConfigs)) {
+      if (category.startsWith(key.replace("_*", "_"))) {
+        return config;
+      }
+    }
+    return DEFAULT_CONFIG;
   }
 
   analyze(signals: NormalizedSignal[]): DetectedIssue[] {
@@ -25,7 +132,6 @@ export class TrendDetector extends BaseDetector {
     const grouped = this.groupSignalsByCategory(signals);
 
     for (const [category, categorySignals] of grouped) {
-      // Skip if not in monitored categories (when specified)
       if (
         this.config.categories!.length > 0 &&
         !this.config.categories!.includes(category)
@@ -37,40 +143,87 @@ export class TrendDetector extends BaseDetector {
         continue;
       }
 
-      // Sort by timestamp
       const sorted = [...categorySignals].sort(
         (a, b) => a.timestamp.getTime() - b.timestamp.getTime()
       );
 
-      // Calculate linear regression
       const trend = this.calculateTrend(sorted);
 
       if (Math.abs(trend.slope) < this.config.trendThreshold!) {
         continue;
       }
 
-      const direction = trend.slope > 0 ? "increasing" : "decreasing";
+      const direction: TrendDirection = trend.slope > 0 ? "increasing" : "decreasing";
       const magnitude = Math.abs(trend.slope);
+      const metricConfig = this.getMetricConfig(category);
 
+      // Determine if this is a positive or negative change
+      const isPositiveChange =
+        (direction === "increasing" && metricConfig.increasingIsPositive) ||
+        (direction === "decreasing" && !metricConfig.increasingIsPositive);
+
+      // Determine kind: positive changes can be insights instead of issues
+      const kind: IssueKind = isPositiveChange && metricConfig.positiveAsInsight
+        ? "insight"
+        : "issue";
+
+      // Calculate priority based on metric config and direction
       let priority: DetectedIssue["priority"] = "low";
-      if (magnitude > this.config.trendThreshold! * 5) {
-        priority = "urgent";
-      } else if (magnitude > this.config.trendThreshold! * 3) {
-        priority = "high";
-      } else if (magnitude > this.config.trendThreshold! * 2) {
-        priority = "medium";
+      const threshold = this.config.trendThreshold!;
+
+      if (isPositiveChange) {
+        // Positive changes have much lower priority
+        if (magnitude > threshold * metricConfig.urgentThreshold) {
+          priority = "medium"; // Max priority for positive changes
+        } else if (magnitude > threshold * metricConfig.highThreshold) {
+          priority = "low";
+        }
+      } else {
+        // Negative changes use normal priority escalation
+        if (magnitude > threshold * metricConfig.urgentThreshold) {
+          priority = "urgent";
+        } else if (magnitude > threshold * metricConfig.highThreshold) {
+          priority = "high";
+        } else if (magnitude > threshold * metricConfig.mediumThreshold) {
+          priority = "medium";
+        }
       }
 
-      // Get first and last values for context
       const firstValue = sorted[0].value;
       const lastValue = sorted[sorted.length - 1].value;
       const percentChange = ((lastValue - firstValue) / firstValue) * 100;
 
-      const issue = this.createIssue(
-        `${direction.charAt(0).toUpperCase() + direction.slice(1)} trend in ${category}`,
-        `A significant ${direction} trend detected in ${category}. ` +
+      // Build title based on kind
+      const title = kind === "insight"
+        ? `Positive trend: ${category} ${direction}`
+        : `${direction.charAt(0).toUpperCase() + direction.slice(1)} trend in ${category}`;
+
+      const description = kind === "insight"
+        ? `A positive ${direction} trend observed in ${category}. ` +
           `Values changed from ${firstValue.toFixed(2)} to ${lastValue.toFixed(2)} ` +
-          `(${percentChange > 0 ? "+" : ""}${percentChange.toFixed(1)}%) over ${sorted.length} data points.`,
+          `(${percentChange > 0 ? "+" : ""}${percentChange.toFixed(1)}%) over ${sorted.length} data points. ` +
+          `This is a positive indicator and can be used for learning.`
+        : `A significant ${direction} trend detected in ${category}. ` +
+          `Values changed from ${firstValue.toFixed(2)} to ${lastValue.toFixed(2)} ` +
+          `(${percentChange > 0 ? "+" : ""}${percentChange.toFixed(1)}%) over ${sorted.length} data points.`;
+
+      const suggestedActions = kind === "insight"
+        ? [
+            `Track contributing factors for the positive ${direction} trend`,
+            `Document learnings for future reference`,
+            `Consider if this trend can be replicated in other areas`,
+          ]
+        : [
+            `Monitor the ${direction} trend in ${category}`,
+            `Investigate factors contributing to the ${percentChange.toFixed(1)}% change`,
+            direction === "increasing" && percentChange > 50
+              ? "Consider implementing rate limiting or controls"
+              : "Review if this trend aligns with expectations",
+          ];
+
+      const issue = this.createIssue(
+        title,
+        description,
         category,
         priority,
         sorted,
@@ -87,16 +240,13 @@ export class TrendDetector extends BaseDetector {
               firstValue,
               lastValue,
               percentChange,
+              isPositiveChange,
+              kind,
             },
           },
         ],
-        [
-          `Monitor the ${direction} trend in ${category}`,
-          `Investigate factors contributing to the ${percentChange.toFixed(1)}% change`,
-          direction === "increasing" && percentChange > 50
-            ? "Consider implementing rate limiting or controls"
-            : "Review if this trend aligns with expectations",
-        ]
+        suggestedActions,
+        { direction, kind }
       );
 
       issues.push(issue);
@@ -118,12 +268,10 @@ export class TrendDetector extends BaseDetector {
     const sumY = yValues.reduce((a, b) => a + b, 0);
     const sumXY = xValues.reduce((acc, x, i) => acc + x * yValues[i], 0);
     const sumX2 = xValues.reduce((acc, x) => acc + x * x, 0);
-    const sumY2 = yValues.reduce((acc, y) => acc + y * y, 0);
 
     const slope = (n * sumXY - sumX * sumY) / (n * sumX2 - sumX * sumX);
     const intercept = (sumY - slope * sumX) / n;
 
-    // R-squared (coefficient of determination)
     const yMean = sumY / n;
     const ssTotal = yValues.reduce((acc, y) => acc + Math.pow(y - yMean, 2), 0);
     const ssResidual = yValues.reduce((acc, y, i) => {

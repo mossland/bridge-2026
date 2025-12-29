@@ -19,8 +19,9 @@
     "clean": "rm -rf dist"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.32.0",
     "@oracle/core": "workspace:*",
-    "@anthropic-ai/sdk": "^0.32.0"
+    "openai": "^6.15.0"
   },
   "devDependencies": {
     "typescript": "^5.3.0"

@@ -13,9 +13,13 @@ export {
 export {
   IssuePrioritySchema,
   IssueStatusSchema,
+  TrendDirectionSchema,
+  IssueKindSchema,
   DetectedIssueSchema,
   type IssuePriority,
   type IssueStatus,
+  type TrendDirection,
+  type IssueKind,
   type DetectedIssue,
   type IssueDetector,
 } from "./issue.js";
@@ -24,11 +28,13 @@ export {
 export {
   AgentRoleSchema,
   StanceSchema,
+  ProposalTypeSchema,
   AgentOpinionSchema,
   DecisionPacketSchema,
   AgentContextSchema,
   type AgentRole,
   type Stance,
+  type ProposalType,
   type AgentOpinion,
   type DecisionPacket,
   type AgentContext,

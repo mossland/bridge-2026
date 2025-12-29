@@ -1,13 +1,84 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAccount } from "wagmi";
 import { useTranslations } from "next-intl";
-import { AlertTriangle, MessageSquare, Users, Shield, Coins, Code, ChevronRight, Bot, Loader2, RefreshCw, CheckCircle } from "lucide-react";
+import { AlertTriangle, MessageSquare, Users, Shield, Coins, Code, ChevronRight, Bot, Loader2, RefreshCw, CheckCircle, Clock } from "lucide-react";
 import { cn, timeAgo } from "@/lib/utils";
 import { api } from "@/lib/api";
+
+// Progress component for deliberation
+function DeliberationProgress({ isActive }: { isActive: boolean }) {
+  const [progress, setProgress] = useState(0);
+  const [stage, setStage] = useState(0);
+  const t = useTranslations();
+
+  const stages = [
+    { label: "Risk Agent 분석 중...", duration: 3000 },
+    { label: "Treasury Agent 분석 중...", duration: 3000 },
+    { label: "Community Agent 분석 중...", duration: 3000 },
+    { label: "Product Agent 분석 중...", duration: 3000 },
+    { label: "Moderator 종합 중...", duration: 2000 },
+  ];
+
+  useEffect(() => {
+    if (!isActive) {
+      setProgress(0);
+      setStage(0);
+      return;
+    }
+
+    const totalDuration = stages.reduce((sum, s) => sum + s.duration, 0);
+    const startTime = Date.now();
+
+    const interval = setInterval(() => {
+      const elapsed = Date.now() - startTime;
+      const newProgress = Math.min((elapsed / totalDuration) * 100, 95);
+      setProgress(newProgress);
+
+      // Determine current stage
+      let accumulatedDuration = 0;
+      for (let i = 0; i < stages.length; i++) {
+        accumulatedDuration += stages[i].duration;
+        if (elapsed < accumulatedDuration) {
+          setStage(i);
+          break;
+        }
+      }
+    }, 100);
+
+    return () => clearInterval(interval);
+  }, [isActive]);
+
+  if (!isActive) return null;
+
+  return (
+    <div className="space-y-3 py-4">
+      <div className="flex items-center justify-between text-sm">
+        <div className="flex items-center space-x-2">
+          <Loader2 className="w-4 h-4 animate-spin text-moss-600" />
+          <span className="text-gray-600">{stages[stage]?.label || "분석 중..."}</span>
+        </div>
+        <div className="flex items-center space-x-1 text-gray-400">
+          <Clock className="w-3 h-3" />
+          <span className="text-xs">약 15초 소요</span>
+        </div>
+      </div>
+      <div className="w-full bg-gray-200 rounded-full h-2">
+        <div
+          className="bg-moss-500 h-2 rounded-full transition-all duration-300"
+          style={{ width: `${progress}%` }}
+        />
+      </div>
+      <div className="flex justify-between text-xs text-gray-400">
+        <span>4개 에이전트 심의 + Moderator 종합</span>
+        <span>{Math.round(progress)}%</span>
+      </div>
+    </div>
+  );
+}
 
 const priorityColors: Record<string, string> = {
   urgent: "bg-red-100 text-red-700",
@@ -183,23 +254,23 @@ export default function IssuesPage() {
         {/* Issue Detail / Decision Packet */}
         <div className="lg:col-span-1">
           {selectedIssue ? (
-            <div className="card sticky top-24">
-              <h3 className="font-semibold text-gray-900 mb-4">Decision Packet</h3>
+            <div className="card sticky top-24 max-h-[calc(100vh-8rem)] overflow-y-auto">
+              <h3 className="font-semibold text-gray-900 mb-4 sticky top-0 bg-white pb-2 -mt-2 pt-2">Decision Packet</h3>
 
               {!selectedIssue.decisionPacket && (!selectedIssue.agentOpinions || selectedIssue.agentOpinions.length === 0) ? (
                 <div className="text-center py-8 text-gray-500">
                   <Bot className="w-12 h-12 mx-auto mb-3 text-gray-300" />
                   <p>{t("issues.agentDeliberation")}</p>
-                  <button
-                    onClick={() => deliberateMutation.mutate(selectedIssue)}
-                    disabled={deliberateMutation.isPending}
-                    className="btn-primary mt-4"
-                  >
-                    {deliberateMutation.isPending ? (
-                      <Loader2 className="w-4 h-4 animate-spin inline mr-2" />
-                    ) : null}
-                    {deliberateMutation.isPending ? t("issues.deliberating") : t("issues.deliberate")}
-                  </button>
+                  {!deliberateMutation.isPending && (
+                    <button
+                      onClick={() => deliberateMutation.mutate(selectedIssue)}
+                      disabled={deliberateMutation.isPending}
+                      className="btn-primary mt-4"
+                    >
+                      {t("issues.deliberate")}
+                    </button>
+                  )}
+                  <DeliberationProgress isActive={deliberateMutation.isPending} />
                 </div>
               ) : (
                 <div className="space-y-4">

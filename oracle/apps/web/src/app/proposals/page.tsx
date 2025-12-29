@@ -363,6 +363,119 @@ export default function ProposalsPage() {
                       </div>
                     </div>
 
+                    {/* Purpose (Issue Context) */}
+                    {dp?.issue && (
+                      <div>
+                        <h4 className="text-sm font-medium text-gray-700 mb-2">{t("proposals.purpose")}</h4>
+                        <div className="text-sm p-3 bg-blue-50 rounded-lg">
+                          <p className="text-blue-700">{dp.issue.description}</p>
+                          {dp.issue.evidence && dp.issue.evidence.length > 0 && (
+                            <div className="mt-2 text-xs text-blue-600">
+                              {t("proposals.evidenceCount")}: {dp.issue.evidence.length}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Consensus Score & Proposal Type */}
+                    {(dp?.consensusScore !== undefined || dp?.recommendedProposalType) && (
+                      <div>
+                        <h4 className="text-sm font-medium text-gray-700 mb-2">{t("proposals.consensus")}</h4>
+                        <div className="flex items-center space-x-4 p-3 bg-purple-50 rounded-lg">
+                          {dp.consensusScore !== undefined && (
+                            <div className="flex items-center space-x-2">
+                              <span className="text-sm text-purple-700">{t("proposals.score")}:</span>
+                              <span className={cn(
+                                "font-bold",
+                                dp.consensusScore >= 0.7 ? "text-green-600" :
+                                dp.consensusScore >= 0.5 ? "text-yellow-600" : "text-red-600"
+                              )}>
+                                {Math.round(dp.consensusScore * 100)}%
+                              </span>
+                            </div>
+                          )}
+                          {dp.recommendedProposalType && (
+                            <span className={cn(
+                              "badge",
+                              dp.recommendedProposalType === "action" ? "bg-green-100 text-green-700" : "bg-yellow-100 text-yellow-700"
+                            )}>
+                              {dp.recommendedProposalType === "action" ? t("proposals.typeAction") : t("proposals.typeInvestigation")}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Agent Opinions Summary */}
+                    {dp?.agentOpinions && dp.agentOpinions.length > 0 && (
+                      <div>
+                        <h4 className="text-sm font-medium text-gray-700 mb-2">{t("proposals.agentOpinions")}</h4>
+                        <div className="space-y-2">
+                          {dp.agentOpinions.map((opinion: any, i: number) => (
+                            <div key={i} className="p-3 bg-gray-50 rounded-lg">
+                              <div className="flex items-center justify-between mb-1">
+                                <span className="font-medium text-gray-700 capitalize">{opinion.role || opinion.agentRole}</span>
+                                <div className="flex items-center space-x-2">
+                                  <span className={cn(
+                                    "text-xs px-2 py-0.5 rounded",
+                                    (opinion.stance || "").includes("support") ? "bg-green-100 text-green-700" :
+                                    (opinion.stance || "").includes("oppose") ? "bg-red-100 text-red-700" : "bg-gray-200 text-gray-600"
+                                  )}>
+                                    {opinion.stance}
+                                  </span>
+                                  <span className="text-xs text-gray-500">
+                                    {Math.round((opinion.confidence || 0) * 100)}%
+                                  </span>
+                                </div>
+                              </div>
+                              <p className="text-sm text-gray-600">{opinion.reasoning}</p>
+                              {opinion.recommendations && opinion.recommendations.length > 0 && (
+                                <div className="mt-2 text-xs text-moss-600">
+                                  {opinion.recommendations.slice(0, 2).join(", ")}
+                                </div>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Goals & KPIs */}
+                    {dp?.kpis && dp.kpis.length > 0 && (
+                      <div>
+                        <h4 className="text-sm font-medium text-gray-700 mb-2">{t("proposals.goals")}</h4>
+                        <div className="grid grid-cols-2 gap-2">
+                          {dp.kpis.map((kpi: any, i: number) => (
+                            <div key={i} className="p-2 bg-moss-50 rounded-lg text-sm">
+                              <p className="font-medium text-moss-700">{kpi.name}</p>
+                              <p className="text-moss-600">{t("proposals.target")}: {kpi.target} {kpi.unit}</p>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Alternatives */}
+                    {dp?.alternatives && dp.alternatives.length > 0 && (
+                      <div>
+                        <h4 className="text-sm font-medium text-gray-700 mb-2">{t("proposals.alternatives")}</h4>
+                        <div className="space-y-2">
+                          {dp.alternatives.map((alt: any, i: number) => (
+                            <div key={i} className="text-sm p-2 bg-gray-50 rounded-lg">
+                              <p className="font-medium text-gray-700">{alt.action}</p>
+                              {alt.pros && alt.pros.length > 0 && (
+                                <p className="text-green-600 text-xs mt-1">+ {alt.pros.join(", ")}</p>
+                              )}
+                              {alt.cons && alt.cons.length > 0 && (
+                                <p className="text-red-600 text-xs">- {alt.cons.join(", ")}</p>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
                     {/* Risks */}
                     {dp?.risks && dp.risks.length > 0 && (
                       <div>
@@ -383,6 +496,11 @@ export default function ProposalsPage() {
                                       {t("issues.impact")}: {risk.impact}
                                     </span>
                                   </div>
+                                  {risk.mitigation && (
+                                    <p className="mt-1 text-gray-600">
+                                      <span className="font-medium">{t("issues.mitigation")}:</span> {risk.mitigation}
+                                    </p>
+                                  )}
                                 </>
                               )}
                             </div>

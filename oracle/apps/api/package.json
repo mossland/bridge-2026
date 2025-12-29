@@ -20,6 +20,7 @@
     "@oracle/proof-of-outcome": "workspace:*",
     "@oracle/reality-oracle": "workspace:*",
     "cors": "^2.8.5",
+    "dotenv": "^17.2.3",
     "express": "^4.21.0",
     "helmet": "^8.0.0",
     "zod": "^3.23.0"

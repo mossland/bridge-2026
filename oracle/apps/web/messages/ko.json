@@ -126,7 +126,17 @@
     "tally": "집계",
     "tallying": "집계 중...",
     "execute": "실행",
-    "executing": "실행 중..."
+    "executing": "실행 중...",
+    "purpose": "목적",
+    "evidenceCount": "증거",
+    "consensus": "에이전트 합의",
+    "score": "합의 점수",
+    "typeAction": "실행 제안",
+    "typeInvestigation": "조사 제안",
+    "agentOpinions": "에이전트 의견",
+    "goals": "목표 및 KPI",
+    "target": "목표",
+    "alternatives": "대안"
   },
   "delegation": {
     "title": "위임 정책",
