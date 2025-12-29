@@ -23,6 +23,13 @@ import {
   getAgentTrustScores,
 } from "./learning.js";
 
+// Import blockchain service
+import {
+  blockchainService,
+  parseVoteChoice,
+  VoteChoice,
+} from "./blockchain.js";
+
 // Import ORACLE modules
 import {
   SignalRegistry,
@@ -619,19 +626,59 @@ app.get("/api/proposals/:id", (req, res) => {
   }
 });
 
-app.post("/api/proposals/:id/vote", (req, res) => {
+app.post("/api/proposals/:id/vote", async (req, res) => {
   try {
     const { voter, choice, weight, reason } = req.body;
-    if (!voter || !choice || !weight) {
-      return res.status(400).json({ error: "voter, choice, and weight are required" });
+    if (!voter || !choice) {
+      return res.status(400).json({ error: "voter and choice are required" });
     }
+
+    // Verify MOC holder eligibility and get voting weight
+    let votingWeight: bigint;
+    try {
+      if (blockchainService.isMocEnabled()) {
+        // Use actual MOC balance as voting weight
+        votingWeight = await blockchainService.verifyVoterEligibility(voter as `0x${string}`);
+        console.log(`✅ Voter ${voter} verified: ${Number(votingWeight) / 1e18} MOC`);
+      } else {
+        // Fallback to provided weight if MOC service not enabled
+        if (!weight) {
+          return res.status(400).json({ error: "weight is required when MOC verification is disabled" });
+        }
+        votingWeight = BigInt(weight);
+      }
+    } catch (verifyError: any) {
+      return res.status(403).json({
+        error: verifyError.message,
+        code: "NOT_MOC_HOLDER",
+      });
+    }
+
+    // Cast the vote with verified weight
     const vote = votingSystem.castVote(
       req.params.id,
       voter,
       choice,
-      BigInt(weight),
+      votingWeight,
       reason
     );
+
+    // Try to record vote on-chain (non-blocking)
+    let txHash: string | undefined;
+    if (blockchainService.isEnabled()) {
+      const proposal = votingSystem.getProposal(req.params.id);
+      if (proposal?.onchainId) {
+        const voteChoice = parseVoteChoice(choice);
+        const txResult = await blockchainService.castVote(
+          proposal.onchainId,
+          voteChoice,
+          votingWeight
+        );
+        if (txResult.success) {
+          txHash = txResult.txHash;
+        }
+      }
+    }
 
     // Emit real-time event
     const tally = votingSystem.tallyVotes(req.params.id);
@@ -648,6 +695,7 @@ app.post("/api/proposals/:id/vote", (req, res) => {
         totalVotes: tally.totalVotes.toString(),
         participationRate: tally.participationRate,
       },
+      txHash,
     });
 
     // Convert BigInt to string for JSON serialization
@@ -656,6 +704,10 @@ app.post("/api/proposals/:id/vote", (req, res) => {
         ...vote,
         weight: vote.weight.toString(),
       },
+      txHash,
+      mocBalance: blockchainService.isMocEnabled()
+        ? (Number(votingWeight) / 1e18).toFixed(2)
+        : undefined,
     });
   } catch (error: any) {
     res.status(400).json({ error: error.message || "Failed to cast vote" });
@@ -1006,6 +1058,77 @@ app.get("/api/stats", (req, res) => {
     });
   } catch (error) {
     res.status(500).json({ error: "Failed to fetch stats" });
+  }
+});
+
+// Blockchain status endpoint
+app.get("/api/blockchain/status", async (req, res) => {
+  try {
+    const status = {
+      enabled: blockchainService.isEnabled(),
+      mocEnabled: blockchainService.isMocEnabled(),
+      proposalCount: blockchainService.isEnabled()
+        ? await blockchainService.getProposalCount()
+        : 0,
+    };
+    res.json(status);
+  } catch (error) {
+    res.status(500).json({ error: "Failed to get blockchain status" });
+  }
+});
+
+// MOC balance check endpoint
+app.get("/api/blockchain/moc/:address", async (req, res) => {
+  try {
+    const address = req.params.address as `0x${string}`;
+
+    if (!blockchainService.isMocEnabled()) {
+      return res.status(503).json({
+        error: "MOC token service not enabled",
+        code: "MOC_SERVICE_DISABLED",
+      });
+    }
+
+    const balance = await blockchainService.getMocBalance(address);
+    const formatted = (Number(balance) / 1e18).toFixed(2);
+    const isHolder = balance > 0n;
+
+    res.json({
+      address,
+      balance: balance.toString(),
+      formatted,
+      isHolder,
+      canVote: isHolder,
+    });
+  } catch (error: any) {
+    res.status(400).json({ error: error.message || "Failed to get MOC balance" });
+  }
+});
+
+// Verify voter eligibility endpoint
+app.get("/api/blockchain/verify-voter/:address", async (req, res) => {
+  try {
+    const address = req.params.address as `0x${string}`;
+
+    if (!blockchainService.isMocEnabled()) {
+      return res.json({
+        eligible: true,
+        reason: "MOC verification disabled",
+        weight: "0",
+      });
+    }
+
+    const balance = await blockchainService.getMocBalance(address);
+    const isHolder = balance > 0n;
+
+    res.json({
+      eligible: isHolder,
+      reason: isHolder ? "MOC holder" : "Not a MOC holder",
+      weight: balance.toString(),
+      formatted: (Number(balance) / 1e18).toFixed(2),
+    });
+  } catch (error: any) {
+    res.status(400).json({ error: error.message || "Failed to verify voter" });
   }
 });
 

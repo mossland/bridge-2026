@@ -25,6 +25,7 @@
     "helmet": "^8.0.0",
     "socket.io": "^4.8.3",
     "uuid": "^13.0.0",
+    "viem": "^2.21.0",
     "zod": "^3.23.0"
   },
   "devDependencies": {

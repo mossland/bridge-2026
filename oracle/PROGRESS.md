@@ -80,6 +80,20 @@ BRIDGE 2026은 Mossland의 MOC 토큰 홀더를 위한 Physical AI 거버넌스 
   - 엔티티별 (에이전트, 제안자, 위임자) 점수
 - [x] 증명 해시 생성
 
+#### 블록체인 연동
+- [x] **BlockchainService** - 온체인 상호작용 서비스
+  - viem 기반 Ethereum 클라이언트
+  - OracleGovernance 컨트랙트 연동
+  - MOC 토큰 잔액 조회 (ERC-20)
+- [x] **MOC 홀더 투표 검증**
+  - 투표 시 MOC 잔액 자동 확인
+  - MOC 잔액 = 투표 가중치
+  - 비홀더 투표 차단
+- [x] **온체인 투표 기록** (환경변수 설정 시)
+  - 제안 온체인 생성
+  - 투표 온체인 기록
+  - 결과 온체인 확정
+
 ### 2. API 서버 (Express)
 
 | Method | Endpoint | 설명 |
@@ -106,6 +120,9 @@ BRIDGE 2026은 Mossland의 MOC 토큰 홀더를 위한 Physical AI 거버넌스 
 | GET | `/api/outcomes/:id/proof` | 증명 생성 |
 | GET | `/api/trust/:entityId` | 신뢰 점수 |
 | GET | `/api/stats` | 시스템 통계 |
+| GET | `/api/blockchain/status` | 블록체인 연동 상태 |
+| GET | `/api/blockchain/moc/:address` | MOC 잔액 조회 |
+| GET | `/api/blockchain/verify-voter/:address` | 투표 자격 검증 |
 
 ### 3. Web Frontend (Next.js)
 
@@ -176,7 +193,8 @@ BRIDGE 2026은 Mossland의 MOC 토큰 홀더를 위한 Physical AI 거버넌스 
 
 | 커밋 | 작업 내용 |
 |------|----------|
-| (pending) | 에이전트 학습 시스템 및 피드백 루프 구현 |
+| (pending) | MOC 홀더 투표 검증 및 블록체인 연동 서비스 |
+| `f00f544` | 에이전트 학습 시스템 및 피드백 루프 구현 |
 | `3d0850a` | 모바일 반응형 최적화 |
 | `eb726e1` | 토스트 알림 시스템 고도화 |
 | `99b96c4` | 에이전트 심의 시스템 고도화 및 UI/UX 개선 |
@@ -193,10 +211,10 @@ BRIDGE 2026은 Mossland의 MOC 토큰 홀더를 위한 Physical AI 거버넌스 
 ### 단기 (Short-term)
 
 #### 블록체인 연동 강화
-- [ ] 실제 MOC 토큰 컨트랙트 연동 (읽기 완료, 쓰기 미완)
-- [ ] 온체인 투표 구현
-- [ ] 투표 결과 온체인 기록
-- [ ] 실행 트랜잭션 생성
+- [x] ~~실제 MOC 토큰 컨트랙트 연동~~ (완료)
+- [x] ~~온체인 투표 구현~~ (완료)
+- [x] ~~투표 결과 온체인 기록~~ (완료)
+- [ ] 실행 트랜잭션 생성 (스마트 컨트랙트 배포 필요)
 
 #### 에이전트 고도화
 - [x] ~~에이전트별 학습 데이터 수집~~ (완료)
@@ -294,6 +312,13 @@ SIGNAL_LANGUAGE=ko           # en 또는 ko
 SIGNAL_COLLECT_INTERVAL=60
 ISSUE_DETECT_INTERVAL=300
 
+# 블록체인 연동 (선택사항)
+MAINNET_RPC_URL=...          # MOC 잔액 조회용 Ethereum Mainnet RPC
+RPC_URL=...                  # 거버넌스 컨트랙트 배포 네트워크 RPC
+GOVERNANCE_CONTRACT_ADDRESS=... # OracleGovernance 컨트랙트 주소
+ORACLE_PRIVATE_KEY=...       # 오라클 서명 계정 (0x 포함)
+CHAIN_ID=1                   # 1: mainnet, 11155111: sepolia, 31337: hardhat
+
 # Web (.env.local)
 NEXT_PUBLIC_API_URL=http://localhost:4000
 NEXT_PUBLIC_WALLET_CONNECT_ID=...
@@ -308,6 +333,7 @@ NEXT_PUBLIC_WALLET_CONNECT_ID=...
 | `apps/api/src/index.ts` | API 엔드포인트 |
 | `apps/api/src/db.ts` | SQLite 데이터베이스 |
 | `apps/api/src/learning.ts` | 에이전트 학습 서비스 |
+| `apps/api/src/blockchain.ts` | 블록체인 연동 서비스 |
 | `apps/web/src/app/*/page.tsx` | 각 페이지 UI |
 | `apps/web/src/lib/api.ts` | API 클라이언트 |
 | `apps/web/src/components/Toast.tsx` | 토스트 알림 컴포넌트 |
