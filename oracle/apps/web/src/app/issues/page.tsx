@@ -187,15 +187,15 @@ export default function IssuesPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">{t("issues.title")}</h1>
-          <p className="mt-1 text-gray-500">{t("issues.subtitle")}</p>
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">{t("issues.title")}</h1>
+          <p className="mt-1 text-sm sm:text-base text-gray-500">{t("issues.subtitle")}</p>
         </div>
         <button
           onClick={() => detectMutation.mutate()}
           disabled={isLoading || detectMutation.isPending}
-          className="btn-primary flex items-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed"
+          className="btn-primary flex items-center justify-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed w-full sm:w-auto"
         >
           {detectMutation.isPending ? (
             <Loader2 className="w-4 h-4 animate-spin" />
@@ -228,40 +228,40 @@ export default function IssuesPage() {
                   key={issue.id}
                   onClick={() => setSelectedIssue(issue)}
                   className={cn(
-                    "card cursor-pointer hover:shadow-md transition-all",
+                    "card cursor-pointer hover:shadow-md transition-all p-4 sm:p-6",
                     selectedIssue?.id === issue.id && "ring-2 ring-moss-500"
                   )}
                 >
                   <div className="flex items-start justify-between">
-                    <div className="flex items-start space-x-3">
-                      <div className="p-2 bg-gray-100 rounded-lg">
+                    <div className="flex items-start space-x-3 flex-1 min-w-0">
+                      <div className="p-2 bg-gray-100 rounded-lg flex-shrink-0 hidden sm:block">
                         <CategoryIcon className="w-5 h-5 text-gray-600" />
                       </div>
-                      <div>
-                        <div className="flex items-center space-x-2">
-                          <span className={cn("badge", priorityColors[issue.priority] || "bg-gray-100 text-gray-700")}>
+                      <div className="min-w-0">
+                        <div className="flex items-center flex-wrap gap-1 sm:gap-2">
+                          <span className={cn("badge text-xs", priorityColors[issue.priority] || "bg-gray-100 text-gray-700")}>
                             {(issue.priority || "medium").toUpperCase()}
                           </span>
-                          <span className="badge bg-blue-50 text-blue-600">
+                          <span className="badge bg-blue-50 text-blue-600 text-xs">
                             {issue.status}
                           </span>
                         </div>
-                        <h3 className="mt-2 font-semibold text-gray-900">{issue.title}</h3>
-                        <p className="mt-1 text-sm text-gray-500 line-clamp-2">{issue.description}</p>
-                        <div className="mt-2 flex items-center space-x-4 text-xs text-gray-400">
+                        <h3 className="mt-2 font-semibold text-gray-900 text-sm sm:text-base line-clamp-2">{issue.title}</h3>
+                        <p className="mt-1 text-xs sm:text-sm text-gray-500 line-clamp-2">{issue.description}</p>
+                        <div className="mt-2 flex items-center flex-wrap gap-2 sm:gap-4 text-xs text-gray-400">
                           <span>{timeAgo(new Date(issue.detectedAt))}</span>
                           <span>{t("issues.relatedSignals")}: {issue.signalCount || 0}</span>
                         </div>
                       </div>
                     </div>
-                    <ChevronRight className="w-5 h-5 text-gray-400" />
+                    <ChevronRight className="w-5 h-5 text-gray-400 flex-shrink-0 ml-2" />
                   </div>
 
                   {agentOpinions.length > 0 && (
                     <div className="mt-4 pt-4 border-t border-gray-100">
-                      <div className="flex items-center space-x-2">
+                      <div className="flex items-center flex-wrap gap-2">
                         <Bot className="w-4 h-4 text-moss-600" />
-                        <span className="text-sm text-gray-500">{t("issues.agentDeliberation")}:</span>
+                        <span className="text-xs sm:text-sm text-gray-500">{t("issues.agentDeliberation")}:</span>
                         {agentOpinions.map((opinion: any) => (
                           <div key={opinion.role} className="flex items-center space-x-1">
                             <div className={cn("w-2 h-2 rounded-full", stanceColors[opinion.stance] || "bg-gray-300")} />

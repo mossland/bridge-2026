@@ -208,16 +208,16 @@ export default function ProposalsPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">{t("proposals.title")}</h1>
-          <p className="mt-1 text-gray-500">{t("proposals.subtitle")}</p>
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">{t("proposals.title")}</h1>
+          <p className="mt-1 text-sm sm:text-base text-gray-500">{t("proposals.subtitle")}</p>
         </div>
-        <div className="flex items-center space-x-2">
+        <div className="flex items-center">
           <select
             value={filter}
             onChange={(e) => setFilter(e.target.value)}
-            className="border-gray-300 rounded-lg text-sm"
+            className="border-gray-300 rounded-lg text-sm w-full sm:w-auto"
           >
             <option value="all">{t("common.all")}</option>
             <option value="active">{t("proposals.active")}</option>
@@ -265,27 +265,27 @@ export default function ProposalsPage() {
             const expectedOutcome = typeof rec?.expectedOutcome === "string" ? rec.expectedOutcome : "";
 
             return (
-              <div key={proposal.id} className="card">
-                <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    <div className="flex items-center space-x-2 mb-2">
-                      <span className={cn("badge", getStatusColor(proposal.status))}>
+              <div key={proposal.id} className="card p-4 sm:p-6">
+                <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center flex-wrap gap-1 sm:gap-2 mb-2">
+                      <span className={cn("badge text-xs", getStatusColor(proposal.status))}>
                         {proposal.status === "active" ? t("proposals.active") :
                          proposal.status === "passed" ? t("proposals.passed") :
                          proposal.status === "executed" ? t("proposals.executed") :
                          proposal.status === "pending" ? t("proposals.pending") : t("proposals.rejected")}
                       </span>
                       {(proposal.aiAssisted || dp) && (
-                        <span className="badge bg-purple-50 text-purple-600">
+                        <span className="badge bg-purple-50 text-purple-600 text-xs">
                           <Bot className="w-3 h-3 mr-1 inline" />
-                          AI Assisted
+                          AI
                         </span>
                       )}
                     </div>
-                    <h3 className="text-lg font-semibold text-gray-900">{proposalTitle}</h3>
-                    <p className="mt-1 text-sm text-gray-500">{proposalDescription}</p>
+                    <h3 className="text-base sm:text-lg font-semibold text-gray-900 line-clamp-2">{proposalTitle}</h3>
+                    <p className="mt-1 text-xs sm:text-sm text-gray-500 line-clamp-2">{proposalDescription}</p>
                     {expectedOutcome && (
-                      <p className="mt-2 text-sm text-moss-600">
+                      <p className="mt-2 text-xs sm:text-sm text-moss-600 line-clamp-2">
                         <span className="font-medium">{t("issues.expectedOutcome")}:</span> {expectedOutcome}
                       </p>
                     )}
@@ -299,23 +299,23 @@ export default function ProposalsPage() {
                       />
                     </div>
 
-                    <div className="mt-3 flex items-center space-x-4 text-sm text-gray-500">
+                    <div className="mt-3 flex items-center flex-wrap gap-2 sm:gap-4 text-xs sm:text-sm text-gray-500">
                       <span className="flex items-center">
-                        <Clock className="w-4 h-4 mr-1" />
+                        <Clock className="w-3 h-3 sm:w-4 sm:h-4 mr-1" />
                         {proposal.status === "active"
                           ? `${Math.max(0, Math.ceil((votingEndsAt.getTime() - Date.now()) / (24 * 60 * 60 * 1000)))}d`
                           : timeAgo(votingEndsAt)}
                       </span>
-                      <span>{formatNumber(total)} MOC {t("proposals.votes")}</span>
+                      <span>{formatNumber(total)} MOC</span>
                       <span>{t("proposals.quorum")} {quorumPercent.toFixed(0)}%</span>
                     </div>
                   </div>
 
-                  <div className="flex flex-col items-end space-y-2 ml-4">
+                  <div className="flex flex-row sm:flex-col items-center sm:items-end gap-2 sm:ml-4">
                     {proposal.status === "active" && isConnected && (
                       <button
                         onClick={() => setVotingProposal(proposal)}
-                        className="btn-primary"
+                        className="btn-primary text-sm py-2 px-4 flex-1 sm:flex-none"
                       >
                         {t("proposals.vote")}
                       </button>
@@ -324,7 +324,7 @@ export default function ProposalsPage() {
                       <button
                         onClick={() => executeMutation.mutate(proposal.id)}
                         disabled={executeMutation.isPending}
-                        className="btn-primary bg-purple-600 hover:bg-purple-700 flex items-center disabled:opacity-50"
+                        className="btn-primary bg-purple-600 hover:bg-purple-700 flex items-center disabled:opacity-50 text-sm py-2 px-4 flex-1 sm:flex-none"
                       >
                         {executeMutation.isPending ? (
                           <Loader2 className="w-4 h-4 mr-2 animate-spin" />
@@ -335,17 +335,17 @@ export default function ProposalsPage() {
                       </button>
                     )}
                     {proposal.status === "executed" && (
-                      <span className="text-sm text-purple-600 flex items-center">
+                      <span className="text-xs sm:text-sm text-purple-600 flex items-center">
                         <CheckCircle className="w-4 h-4 mr-1" />
                         {t("proposals.executed")}
                       </span>
                     )}
                     <button
                       onClick={() => setExpandedId(isExpanded ? null : proposal.id)}
-                      className="text-sm text-gray-500 flex items-center"
+                      className="text-xs sm:text-sm text-gray-500 flex items-center p-2"
                     >
                       {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-                      {t("common.view")}
+                      <span className="hidden sm:inline ml-1">{t("common.view")}</span>
                     </button>
                   </div>
                 </div>
@@ -353,18 +353,18 @@ export default function ProposalsPage() {
                 {isExpanded && (
                   <div className="mt-4 pt-4 border-t border-gray-100 space-y-4">
                     {/* Vote Statistics */}
-                    <div className="grid grid-cols-3 gap-4 text-center">
-                      <div className="p-3 bg-green-50 rounded-lg">
-                        <p className="text-2xl font-bold text-green-600">{formatNumber(forVotes)}</p>
-                        <p className="text-sm text-green-700">{t("proposals.for")}</p>
+                    <div className="grid grid-cols-3 gap-2 sm:gap-4 text-center">
+                      <div className="p-2 sm:p-3 bg-green-50 rounded-lg">
+                        <p className="text-lg sm:text-2xl font-bold text-green-600">{formatNumber(forVotes)}</p>
+                        <p className="text-xs sm:text-sm text-green-700">{t("proposals.for")}</p>
                       </div>
-                      <div className="p-3 bg-red-50 rounded-lg">
-                        <p className="text-2xl font-bold text-red-600">{formatNumber(againstVotes)}</p>
-                        <p className="text-sm text-red-700">{t("proposals.against")}</p>
+                      <div className="p-2 sm:p-3 bg-red-50 rounded-lg">
+                        <p className="text-lg sm:text-2xl font-bold text-red-600">{formatNumber(againstVotes)}</p>
+                        <p className="text-xs sm:text-sm text-red-700">{t("proposals.against")}</p>
                       </div>
-                      <div className="p-3 bg-gray-50 rounded-lg">
-                        <p className="text-2xl font-bold text-gray-600">{formatNumber(abstainVotes)}</p>
-                        <p className="text-sm text-gray-700">{t("proposals.abstain")}</p>
+                      <div className="p-2 sm:p-3 bg-gray-50 rounded-lg">
+                        <p className="text-lg sm:text-2xl font-bold text-gray-600">{formatNumber(abstainVotes)}</p>
+                        <p className="text-xs sm:text-sm text-gray-700">{t("proposals.abstain")}</p>
                       </div>
                     </div>
 
@@ -449,10 +449,10 @@ export default function ProposalsPage() {
                     {/* Goals & KPIs */}
                     {dp?.kpis && dp.kpis.length > 0 && (
                       <div>
-                        <h4 className="text-sm font-medium text-gray-700 mb-2">{t("proposals.goals")}</h4>
-                        <div className="grid grid-cols-2 gap-2">
+                        <h4 className="text-xs sm:text-sm font-medium text-gray-700 mb-2">{t("proposals.goals")}</h4>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                           {dp.kpis.map((kpi: any, i: number) => (
-                            <div key={i} className="p-2 bg-moss-50 rounded-lg text-sm">
+                            <div key={i} className="p-2 bg-moss-50 rounded-lg text-xs sm:text-sm">
                               <p className="font-medium text-moss-700">{kpi.name}</p>
                               <p className="text-moss-600">{t("proposals.target")}: {kpi.target} {kpi.unit}</p>
                             </div>

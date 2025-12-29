@@ -80,32 +80,32 @@ export default function OutcomesPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold text-gray-900">{t("outcomes.title")}</h1>
-        <p className="mt-1 text-gray-500">{t("outcomes.subtitle")}</p>
+        <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">{t("outcomes.title")}</h1>
+        <p className="mt-1 text-sm sm:text-base text-gray-500">{t("outcomes.subtitle")}</p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <div className="card">
-          <p className="text-sm text-gray-500">{t("outcomes.executionRecord")}</p>
-          <p className="text-2xl font-bold text-gray-900">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
+        <div className="card p-4 sm:p-6">
+          <p className="text-xs sm:text-sm text-gray-500 truncate">{t("outcomes.executionRecord")}</p>
+          <p className="text-xl sm:text-2xl font-bold text-gray-900">
             {outcomesLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : outcomes.length}
           </p>
         </div>
-        <div className="card">
-          <p className="text-sm text-gray-500">{t("outcomes.verified")}</p>
-          <p className="text-2xl font-bold text-gray-900">
+        <div className="card p-4 sm:p-6">
+          <p className="text-xs sm:text-sm text-gray-500 truncate">{t("outcomes.verified")}</p>
+          <p className="text-xl sm:text-2xl font-bold text-gray-900">
             {outcomesLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : completedCount}
           </p>
         </div>
-        <div className="card">
-          <p className="text-sm text-gray-500">{t("proposals.passed")}</p>
-          <p className="text-2xl font-bold text-green-600">
+        <div className="card p-4 sm:p-6">
+          <p className="text-xs sm:text-sm text-gray-500 truncate">{t("proposals.passed")}</p>
+          <p className="text-xl sm:text-2xl font-bold text-green-600">
             {outcomesLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : successCount}
           </p>
         </div>
-        <div className="card">
-          <p className="text-sm text-gray-500">{t("dashboard.successRate")}</p>
-          <p className="text-2xl font-bold text-moss-600">
+        <div className="card p-4 sm:p-6">
+          <p className="text-xs sm:text-sm text-gray-500 truncate">{t("dashboard.successRate")}</p>
+          <p className="text-xl sm:text-2xl font-bold text-moss-600">
             {statsLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : `${successRate.toFixed(0)}%`}
           </p>
         </div>
@@ -130,36 +130,36 @@ export default function OutcomesPage() {
                 key={outcome.id}
                 onClick={() => setSelectedOutcome(outcome)}
                 className={cn(
-                  "card cursor-pointer hover:shadow-md transition-all",
+                  "card cursor-pointer hover:shadow-md transition-all p-4 sm:p-6",
                   selectedOutcome?.id === outcome.id && "ring-2 ring-moss-500"
                 )}
               >
-                <div className="flex items-start justify-between">
-                  <div>
-                    <div className="flex items-center space-x-2 mb-2">
+                <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+                  <div className="min-w-0">
+                    <div className="flex items-center flex-wrap gap-1 sm:gap-2 mb-2">
                       {outcome.status === "completed" ? (
                         outcome.overallSuccess ? (
-                          <span className="badge bg-green-50 text-green-700">
+                          <span className="badge bg-green-50 text-green-700 text-xs">
                             <CheckCircle className="w-3 h-3 mr-1" />
                             {t("outcomes.verified")}
                           </span>
                         ) : (
-                          <span className="badge bg-red-50 text-red-700">
+                          <span className="badge bg-red-50 text-red-700 text-xs">
                             <XCircle className="w-3 h-3 mr-1" />
                             {t("proposals.rejected")}
                           </span>
                         )
                       ) : (
-                        <span className="badge bg-blue-50 text-blue-700">{t("outcomes.pending")}</span>
+                        <span className="badge bg-blue-50 text-blue-700 text-xs">{t("outcomes.pending")}</span>
                       )}
                     </div>
-                    <h3 className="font-semibold text-gray-900">{outcome.proposalTitle}</h3>
-                    <p className="mt-1 text-sm text-gray-500">{timeAgo(new Date(outcome.executedAt))}</p>
+                    <h3 className="font-semibold text-gray-900 text-sm sm:text-base line-clamp-2">{outcome.proposalTitle}</h3>
+                    <p className="mt-1 text-xs sm:text-sm text-gray-500">{timeAgo(new Date(outcome.executedAt))}</p>
                   </div>
-                  <div className="text-right">
-                    <p className="text-sm text-gray-500">KPI {outcome.kpis.length}</p>
+                  <div className="text-left sm:text-right flex sm:flex-col items-center sm:items-end gap-2 flex-shrink-0">
+                    <p className="text-xs sm:text-sm text-gray-500">KPI {outcome.kpis.length}</p>
                     {outcome.proofHash && (
-                      <a href="#" className="text-sm text-moss-600 flex items-center mt-1" onClick={(e) => e.stopPropagation()}>
+                      <a href="#" className="text-xs sm:text-sm text-moss-600 flex items-center" onClick={(e) => e.stopPropagation()}>
                         {t("outcomes.proof")}
                         <ExternalLink className="w-3 h-3 ml-1" />
                       </a>

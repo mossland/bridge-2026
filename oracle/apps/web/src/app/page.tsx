@@ -31,20 +31,20 @@ function StatCard({
   href?: string;
 }) {
   const content = (
-    <div className="card hover:shadow-md transition-shadow cursor-pointer">
+    <div className="card hover:shadow-md transition-shadow cursor-pointer p-4 sm:p-6">
       <div className="flex items-center justify-between">
-        <div>
-          <p className="text-sm font-medium text-gray-500">{title}</p>
-          <p className="mt-1 text-2xl font-semibold text-gray-900">{value}</p>
+        <div className="min-w-0 flex-1">
+          <p className="text-xs sm:text-sm font-medium text-gray-500 truncate">{title}</p>
+          <p className="mt-1 text-xl sm:text-2xl font-semibold text-gray-900">{value}</p>
           {trend && (
-            <p className="mt-1 text-sm text-moss-600 flex items-center">
-              <TrendingUp className="w-4 h-4 mr-1" />
+            <p className="mt-1 text-xs sm:text-sm text-moss-600 flex items-center">
+              <TrendingUp className="w-3 h-3 sm:w-4 sm:h-4 mr-1" />
               {trend}
             </p>
           )}
         </div>
-        <div className="p-3 bg-moss-50 rounded-lg">
-          <Icon className="w-6 h-6 text-moss-600" />
+        <div className="p-2 sm:p-3 bg-moss-50 rounded-lg ml-2 flex-shrink-0">
+          <Icon className="w-5 h-5 sm:w-6 sm:h-6 text-moss-600" />
         </div>
       </div>
     </div>
@@ -83,9 +83,9 @@ function WalletInfo() {
 
   return (
     <div className="card bg-gradient-to-r from-moss-600 to-moss-700 text-white">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div className="flex items-center space-x-4">
-          <div className="p-3 bg-white/20 rounded-lg">
+          <div className="p-3 bg-white/20 rounded-lg flex-shrink-0">
             <Wallet className="w-8 h-8" />
           </div>
           <div>
@@ -99,7 +99,7 @@ function WalletInfo() {
             </p>
           </div>
         </div>
-        <div className="text-right">
+        <div className="text-left sm:text-right pl-14 sm:pl-0">
           <p className="text-sm text-moss-100">{t("proposals.votes")}</p>
           <p className="text-xl font-semibold">{votingPower} votes</p>
         </div>
@@ -220,7 +220,7 @@ export default function Dashboard() {
       <WalletInfo />
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
         <StatCard
           title={t("dashboard.totalSignals")}
           value={statsLoading ? "..." : stats?.signals.normalizedSignalCount ?? 0}
@@ -256,17 +256,17 @@ export default function Dashboard() {
           <h3 className="text-lg font-semibold text-gray-900 mb-4">
             {t("common.view")}
           </h3>
-          <div className="grid grid-cols-2 gap-4">
-            <Link href="/signals" className="btn-secondary text-center">
+          <div className="grid grid-cols-2 gap-2 sm:gap-4">
+            <Link href="/signals" className="btn-secondary text-center text-sm sm:text-base py-2 sm:py-2">
               {t("nav.signals")}
             </Link>
-            <Link href="/issues" className="btn-secondary text-center">
+            <Link href="/issues" className="btn-secondary text-center text-sm sm:text-base py-2 sm:py-2">
               {t("nav.issues")}
             </Link>
-            <Link href="/proposals" className="btn-primary text-center">
+            <Link href="/proposals" className="btn-primary text-center text-sm sm:text-base py-2 sm:py-2">
               {t("nav.proposals")}
             </Link>
-            <Link href="/delegation" className="btn-secondary text-center">
+            <Link href="/delegation" className="btn-secondary text-center text-sm sm:text-base py-2 sm:py-2">
               {t("nav.delegation")}
             </Link>
           </div>

@@ -98,7 +98,7 @@ function SignalCard({ signal, t }: { signal: any; t: any }) {
   return (
     <div
       className={cn(
-        "p-4 bg-gray-50 rounded-lg transition-all border-l-4",
+        "p-3 sm:p-4 bg-gray-50 rounded-lg transition-all border-l-4",
         signal.severity === "critical"
           ? "border-red-500"
           : signal.severity === "high"
@@ -108,10 +108,10 @@ function SignalCard({ signal, t }: { signal: any; t: any }) {
               : "border-green-500"
       )}
     >
-      <div className="flex items-start space-x-4">
+      <div className="flex items-start space-x-3 sm:space-x-4">
         <div
           className={cn(
-            "p-2 rounded-lg flex-shrink-0",
+            "p-2 rounded-lg flex-shrink-0 hidden sm:block",
             signal.severity === "critical"
               ? "bg-red-100"
               : signal.severity === "high"
@@ -136,37 +136,38 @@ function SignalCard({ signal, t }: { signal: any; t: any }) {
         </div>
 
         <div className="flex-1 min-w-0">
-          <div className="flex items-center flex-wrap gap-2">
-            <span className={cn("badge", getSeverityColor(signal.severity))}>
+          <div className="flex items-center flex-wrap gap-1 sm:gap-2">
+            <span className={cn("badge text-xs", getSeverityColor(signal.severity))}>
               {t(`signals.severityLevels.${signal.severity}`)}
             </span>
-            <span className="badge bg-gray-100 text-gray-600">
+            <span className="badge bg-gray-100 text-gray-600 text-xs">
               {sourceLabels[signal.source] || signal.source}
             </span>
-            <span className="badge bg-blue-50 text-blue-600 flex items-center gap-1">
+            <span className="badge bg-blue-50 text-blue-600 flex items-center gap-1 text-xs">
               <CategoryIcon className="w-3 h-3" />
-              {signal.category?.replace(/_/g, " ") || "unknown"}
+              <span className="hidden sm:inline">{signal.category?.replace(/_/g, " ") || "unknown"}</span>
+              <span className="sm:hidden">{(signal.category?.split("_")[0]) || "unknown"}</span>
             </span>
           </div>
 
-          <p className="mt-2 text-gray-900 font-medium">
+          <p className="mt-2 text-sm sm:text-base text-gray-900 font-medium line-clamp-2">
             {signal.description || `${t("signals.value")}: ${signal.value}`}
           </p>
 
           {signal.value !== undefined && signal.unit && (
             <div className="mt-2 flex items-baseline gap-1">
-              <span className="text-2xl font-bold text-moss-700">
+              <span className="text-xl sm:text-2xl font-bold text-moss-700">
                 {typeof signal.value === "number"
                   ? signal.value.toLocaleString(undefined, {
                       maximumFractionDigits: 2,
                     })
                   : signal.value}
               </span>
-              <span className="text-sm text-gray-500">{signal.unit}</span>
+              <span className="text-xs sm:text-sm text-gray-500">{signal.unit}</span>
             </div>
           )}
 
-          <div className="mt-2 flex items-center gap-4 text-sm text-gray-500">
+          <div className="mt-2 flex items-center gap-2 sm:gap-4 text-xs sm:text-sm text-gray-500">
             <span className="flex items-center gap-1">
               <Clock className="w-3 h-3" />
               {timeAgo(new Date(signal.timestamp))}
@@ -174,17 +175,17 @@ function SignalCard({ signal, t }: { signal: any; t: any }) {
             {metadata.blockNumber && (
               <span className="flex items-center gap-1">
                 <Layers className="w-3 h-3" />
-                Block #{metadata.blockNumber.toLocaleString()}
+                <span className="hidden sm:inline">Block #</span>{metadata.blockNumber.toLocaleString()}
               </span>
             )}
           </div>
         </div>
 
-        <div className="flex items-center gap-2 flex-shrink-0">
+        <div className="flex flex-col sm:flex-row items-end sm:items-center gap-2 flex-shrink-0">
           {(signal.severity === "critical" || signal.severity === "high") && (
-            <button className="btn-secondary text-sm flex items-center space-x-1">
-              <AlertTriangle className="w-4 h-4" />
-              <span>{t("issues.createProposal")}</span>
+            <button className="btn-secondary text-xs sm:text-sm flex items-center space-x-1 py-1 px-2 sm:py-2 sm:px-4">
+              <AlertTriangle className="w-3 h-3 sm:w-4 sm:h-4" />
+              <span className="hidden sm:inline">{t("issues.createProposal")}</span>
             </button>
           )}
           <button
@@ -387,15 +388,15 @@ export default function SignalsPage() {
       )}
 
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">{t("signals.title")}</h1>
-          <p className="mt-1 text-gray-500">{t("signals.subtitle")}</p>
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">{t("signals.title")}</h1>
+          <p className="mt-1 text-sm sm:text-base text-gray-500">{t("signals.subtitle")}</p>
         </div>
         <button
           onClick={() => collectMutation.mutate()}
           disabled={collectMutation.isPending}
-          className="btn-primary flex items-center space-x-2"
+          className="btn-primary flex items-center justify-center space-x-2 w-full sm:w-auto"
         >
           {collectMutation.isPending ? (
             <Loader2 className="w-4 h-4 animate-spin" />

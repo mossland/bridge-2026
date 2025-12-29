@@ -57,13 +57,13 @@ function DelegationForm({ onClose, t, address, onSuccess }: { onClose: () => voi
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-xl p-6 max-w-lg w-full mx-4 max-h-[90vh] overflow-y-auto">
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-xl p-4 sm:p-6 max-w-lg w-full max-h-[90vh] overflow-y-auto">
         <h3 className="text-lg font-semibold text-gray-900 mb-4">{t("delegation.create")}</h3>
 
         <div className="mb-6">
           <label className="block text-sm font-medium text-gray-700 mb-2">{t("delegation.delegateTo")}</label>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-2 gap-2 sm:gap-3">
             {agents.map((agent) => {
               const Icon = agent.icon;
               return (
@@ -178,13 +178,13 @@ export default function DelegationPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">{t("delegation.title")}</h1>
-          <p className="mt-1 text-gray-500">{t("delegation.subtitle")}</p>
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">{t("delegation.title")}</h1>
+          <p className="mt-1 text-sm sm:text-base text-gray-500">{t("delegation.subtitle")}</p>
         </div>
         {isConnected && (
-          <button onClick={() => setShowForm(true)} className="btn-primary flex items-center space-x-2">
+          <button onClick={() => setShowForm(true)} className="btn-primary flex items-center justify-center space-x-2 w-full sm:w-auto">
             <Plus className="w-4 h-4" />
             <span>{t("delegation.create")}</span>
           </button>
@@ -272,15 +272,15 @@ export default function DelegationPage() {
               return (
                 <div
                   key={delegation.id}
-                  className={cn("card flex items-center justify-between", !isActive && "opacity-60")}
+                  className={cn("card flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 p-4 sm:p-6", !isActive && "opacity-60")}
                 >
-                  <div className="flex items-center space-x-4">
-                    <div className={cn("p-2 rounded-lg", isActive ? "bg-moss-50" : "bg-gray-100")}>
-                      <Icon className={cn("w-6 h-6", isActive ? "text-moss-600" : "text-gray-400")} />
+                  <div className="flex items-center space-x-3 sm:space-x-4">
+                    <div className={cn("p-2 rounded-lg flex-shrink-0", isActive ? "bg-moss-50" : "bg-gray-100")}>
+                      <Icon className={cn("w-5 h-5 sm:w-6 sm:h-6", isActive ? "text-moss-600" : "text-gray-400")} />
                     </div>
-                    <div>
-                      <div className="flex items-center space-x-2">
-                        <h3 className="font-semibold text-gray-900">
+                    <div className="min-w-0">
+                      <div className="flex items-center flex-wrap gap-1 sm:gap-2">
+                        <h3 className="font-semibold text-gray-900 text-sm sm:text-base">
                           {agent ? t(`delegation.${agent.nameKey}`) : delegation.delegate}
                         </h3>
                         <span className={cn(
@@ -290,7 +290,7 @@ export default function DelegationPage() {
                           {isActive ? t("delegation.active") : t("delegation.inactive")}
                         </span>
                       </div>
-                      <div className="flex items-center space-x-2 mt-1">
+                      <div className="flex items-center flex-wrap gap-1 sm:gap-2 mt-1">
                         {categories.map((cat: string) => (
                           <span key={cat} className="badge bg-gray-100 text-gray-600 text-xs">{cat}</span>
                         ))}
@@ -306,7 +306,7 @@ export default function DelegationPage() {
                     <button
                       onClick={() => revokeMutation.mutate(delegation.id)}
                       disabled={revokeMutation.isPending}
-                      className="p-2 text-red-500 hover:bg-red-50 rounded-lg disabled:opacity-50"
+                      className="p-2 text-red-500 hover:bg-red-50 rounded-lg disabled:opacity-50 self-end sm:self-auto"
                     >
                       {revokeMutation.isPending ? (
                         <Loader2 className="w-5 h-5 animate-spin" />
