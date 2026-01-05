@@ -22,3 +22,8 @@ CREATE INDEX IF NOT EXISTS idx_events_data_gin ON events USING GIN(data);
 
 
 
+
+
+
+
+

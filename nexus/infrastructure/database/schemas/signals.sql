@@ -24,3 +24,8 @@ CREATE INDEX IF NOT EXISTS idx_signals_metadata_gin ON signals USING GIN(metadat
 
 
 
+
+
+
+
+

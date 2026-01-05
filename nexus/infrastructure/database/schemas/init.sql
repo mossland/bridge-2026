@@ -19,3 +19,8 @@ CREATE EXTENSION IF NOT EXISTS "pg_trgm";  -- 텍스트 검색용
 
 
 
+
+
+
+
+

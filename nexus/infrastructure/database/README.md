@@ -43,3 +43,8 @@ psql -U postgres -d bridge2026 -f migrations/001_initial_schema.sql
 
 
 
+
+
+
+
+

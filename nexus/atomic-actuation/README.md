@@ -58,3 +58,8 @@ Human Governance에서 제안이 통과되면, Atomic Actuation이 실행을 담
 
 
 
+
+
+
+
+
