@@ -1,10 +1,12 @@
-# BRIDGE 2026 Oracle - 개발 진행 현황
+# BRIDGE Oracle - 개발 진행 현황
 
 > Physical AI Governance OS for MOC Token Holders
 
 ## 프로젝트 개요
 
-BRIDGE 2026은 Mossland의 MOC 토큰 홀더를 위한 Physical AI 거버넌스 운영체제입니다.
+BRIDGE는 Mossland의 MOC 토큰 홀더를 위한 Physical AI 거버넌스 운영체제입니다.
+
+🔗 **Live Demo**: [https://bridge.moss.land](https://bridge.moss.land)
 
 **핵심 플로우:** Reality Signals → Agents Deliberate → Humans Decide → Outcomes Proven
 
@@ -166,6 +168,15 @@ BRIDGE 2026은 Mossland의 MOC 토큰 홀더를 위한 Physical AI 거버넌스 
   - 반응형 그리드 레이아웃
   - 터치 친화적 버튼 크기
   - 모바일 우선 타이포그래피
+- [x] **헤더/푸터 개선**
+  - 헤더 로고 "BRIDGE"
+  - 푸터 컴포넌트 (MOSSLAND 브랜딩)
+  - 소셜 링크 (Website, Twitter, Medium, GitHub, Email)
+- [x] **대시보드 버그 수정**
+  - Signals/Issue Detection 값 0 표시 수정
+  - API 타입 정의 수정
+  - 신호 목록 기본 limit 500으로 증가
+  - CORS 설정 (bridge.moss.land 추가)
 
 ### 5. 데이터 지속성
 
@@ -206,6 +217,8 @@ BRIDGE 2026은 Mossland의 MOC 토큰 홀더를 위한 Physical AI 거버넌스 
 
 | 커밋 | 작업 내용 |
 |------|----------|
+| `ab14a8f` | 대시보드 통계 버그 수정 및 UI 개선 (헤더/푸터) |
+| `b0fc7c0` | pm2 서버 설정 및 데모 모드 문서 업데이트 |
 | `6195d45` | WalletConnect 제거 및 pm2 서버 설정 추가 |
 | `c6923d1` | 블록체인 연동 가이드 문서 추가 |
 | `14ea5e1` | MOC 홀더 투표 검증 및 블록체인 연동 서비스 |

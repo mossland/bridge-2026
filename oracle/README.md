@@ -1,18 +1,20 @@
-# BRIDGE 2026 — Physical AI Expansion
+# BRIDGE — Physical AI Expansion
 
 > **"Where agents propose, people decide, reality updates."**
 
-BRIDGE 2026은 **모스랜드(Mossland)** 의 차세대 거버넌스 프레임워크입니다. 현실 신호가 자동으로 의제화되고, AI 에이전트들이 토론/합의안을 만들며, MOC 홀더가 승인/위임으로 실행하는 **Reality Ops** 시스템입니다.
+BRIDGE는 **모스랜드(Mossland)** 의 차세대 거버넌스 프레임워크입니다. 현실 신호가 자동으로 의제화되고, AI 에이전트들이 토론/합의안을 만들며, MOC 홀더가 승인/위임으로 실행하는 **Reality Ops** 시스템입니다.
+
+🔗 **Live Demo**: [https://bridge.moss.land](https://bridge.moss.land)
 
 ## 핵심 비전
 
 **기존 DAO**: 사람이 제안 → 사람 토론 → 투표
 
-**BRIDGE 2026**: 현실 신호 → AI 의제화 → 에이전트 토론 → 사람 승인/위임 → 실행 → 결과증명
+**BRIDGE**: 현실 신호 → AI 의제화 → 에이전트 토론 → 사람 승인/위임 → 실행 → 결과증명
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────┐
-│                    BRIDGE 2026 Governance Loop                          │
+│                      BRIDGE Governance Loop                             │
 ├─────────────────────────────────────────────────────────────────────────┤
 │                                                                         │
 │   Reality         Inference        Agentic          Human               │
@@ -196,6 +198,20 @@ oracle/
 <img width="1111" height="968" alt="6" src="https://github.com/user-attachments/assets/8f99d790-a64f-442b-af72-17271d7551bb" />
 
 
+## 링크
+
+| 채널 | URL |
+|------|-----|
+| Website | [https://moss.land](https://moss.land) |
+| Twitter | [https://x.com/TheMossland](https://x.com/TheMossland) |
+| Medium | [https://medium.com/mossland-blog](https://medium.com/mossland-blog) |
+| GitHub | [https://github.com/mossland](https://github.com/mossland) |
+| Contact | contact@moss.land |
+
 ## 라이선스
 
 Business Source License (BUSL 1.1)
+
+---
+
+© 2025, 2026 MOSSLAND. ALL RIGHTS RESERVED.
