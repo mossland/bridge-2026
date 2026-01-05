@@ -29,8 +29,8 @@ class APIClient {
   }
 
   // Signals
-  async getSignals() {
-    return this.fetch<{ signals: any[]; count: number }>("/api/signals");
+  async getSignals(limit: number = 500) {
+    return this.fetch<{ signals: any[]; count: number }>(`/api/signals?limit=${limit}`);
   }
 
   async collectSignals() {
@@ -186,7 +186,15 @@ class APIClient {
   // Stats
   async getStats() {
     return this.fetch<{
-      signals: { adapterCount: number; rawSignalCount: number; normalizedSignalCount: number };
+      signals: {
+        total: number;
+        byCategory: { category: string; count: number }[];
+        adapterCount: number;
+      };
+      issues: {
+        total: number;
+        byStatus: { status: string; count: number }[];
+      };
       proposals: { total: number; active: number; passed: number; rejected: number };
       outcomes: { totalProofs: number; successRate: number };
     }>("/api/stats");

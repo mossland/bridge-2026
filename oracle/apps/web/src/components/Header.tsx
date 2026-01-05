@@ -50,7 +50,7 @@ export function Header() {
               <div className="w-8 h-8 bg-moss-600 rounded-lg flex items-center justify-center">
                 <span className="text-white font-bold text-lg">B</span>
               </div>
-              <span className="font-bold text-xl text-gray-900 hidden sm:block">BRIDGE 2026</span>
+              <span className="font-bold text-xl text-gray-900 hidden sm:block">BRIDGE</span>
             </Link>
           </div>
 

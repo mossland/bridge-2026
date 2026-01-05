@@ -227,13 +227,29 @@ const app: Express = express();
 const httpServer = createServer(app);
 const io = new SocketIOServer(httpServer, {
   cors: {
-    origin: ["http://localhost:3100", "http://localhost:4001", "http://localhost:3000"],
+    origin: [
+      "http://localhost:3100",
+      "http://localhost:4001",
+      "http://localhost:3000",
+      "https://bridge.moss.land",
+      "http://bridge.moss.land",
+    ],
     methods: ["GET", "POST"],
+    credentials: true,
   },
 });
 
 app.use(helmet());
-app.use(cors());
+app.use(cors({
+  origin: [
+    "http://localhost:3100",
+    "http://localhost:4001",
+    "http://localhost:3000",
+    "https://bridge.moss.land",
+    "http://bridge.moss.land",
+  ],
+  credentials: true,
+}));
 app.use(express.json());
 
 // Socket.IO connection handling

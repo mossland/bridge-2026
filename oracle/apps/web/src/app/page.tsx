@@ -188,13 +188,13 @@ export default function Dashboard() {
       <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
         <StatCard
           title={t("dashboard.totalSignals")}
-          value={statsLoading ? "..." : stats?.signals.normalizedSignalCount ?? 0}
+          value={statsLoading ? "..." : stats?.signals.total ?? 0}
           icon={Activity}
           href="/signals"
         />
         <StatCard
           title={t("issues.title")}
-          value={statsLoading ? "..." : stats?.proposals.active ?? 0}
+          value={statsLoading ? "..." : stats?.issues.total ?? 0}
           icon={AlertTriangle}
           href="/issues"
         />

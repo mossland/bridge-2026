@@ -522,13 +522,18 @@ export default function SignalsPage() {
       {/* Signals List */}
       <div className="card">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold text-gray-900 flex items-center">
-            <Activity className="w-5 h-5 mr-2 text-moss-600" />
-            {t("signals.title")}
-            <span className="ml-2 text-sm font-normal text-gray-500">
-              ({filteredSignals.length})
-            </span>
-          </h2>
+          <div>
+            <h2 className="text-lg font-semibold text-gray-900 flex items-center">
+              <Activity className="w-5 h-5 mr-2 text-moss-600" />
+              {t("signals.title")}
+              <span className="ml-2 text-sm font-normal text-gray-500">
+                ({filteredSignals.length})
+              </span>
+            </h2>
+            <p className="text-xs text-gray-400 mt-1">
+              {t("signals.maxDisplayNote", { max: 500 })}
+            </p>
+          </div>
           <div className="flex items-center space-x-2">
             <Filter className="w-4 h-4 text-gray-400" />
             <select
