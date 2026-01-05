@@ -227,7 +227,7 @@ const app: Express = express();
 const httpServer = createServer(app);
 const io = new SocketIOServer(httpServer, {
   cors: {
-    origin: ["http://localhost:4001", "http://localhost:3000"],
+    origin: ["http://localhost:3100", "http://localhost:4001", "http://localhost:3000"],
     methods: ["GET", "POST"],
   },
 });

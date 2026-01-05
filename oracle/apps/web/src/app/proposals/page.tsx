@@ -2,11 +2,10 @@
 
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useAccount } from "wagmi";
 import { useTranslations } from "next-intl";
 import { Vote, Clock, CheckCircle, XCircle, Bot, ChevronDown, ChevronUp, Loader2, AlertCircle, Play, Zap } from "lucide-react";
 import { cn, getStatusColor, timeAgo, formatNumber } from "@/lib/utils";
-import { useVotingPower } from "@/hooks/useMOC";
+import { useVotingPower, useAccount } from "@/hooks/useMOC";
 import { useToast } from "@/contexts/ToastContext";
 import { api } from "@/lib/api";
 
