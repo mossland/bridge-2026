@@ -48,14 +48,21 @@ MOC 홀더의 3가지 역할:
 # 의존성 설치
 pnpm install
 
-# 전체 빌드
-pnpm build
+# pm2로 서버 실행 (권장)
+pm2 start ecosystem.config.cjs
 
-# 웹 개발 서버
-pnpm --filter @oracle/web dev
+# 접속
+# Frontend: http://localhost:3100
+# Backend:  http://localhost:3101
 
-# API 서버
-pnpm --filter @oracle/api dev
+# pm2 명령어
+pm2 status              # 상태 확인
+pm2 logs                # 로그 보기
+pm2 restart all         # 전체 재시작
+
+# 개별 실행 (개발용)
+pnpm --filter @oracle/api dev   # API (port 3101)
+pnpm --filter @oracle/web dev   # Web (port 3100)
 ```
 
 ## 2026 H1 MVP 범위
@@ -154,10 +161,11 @@ oracle/
 
 ## 기술 스택
 
-- **Frontend**: Next.js 14, TailwindCSS, wagmi, viem
-- **Backend**: Node.js, Express, TypeScript
-- **Blockchain**: Ethereum, ERC-20 (MOC)
-- **AI**: Claude API (하이브리드)
+- **Frontend**: Next.js 14, TailwindCSS, next-intl
+- **Backend**: Node.js, Express, TypeScript, SQLite
+- **Blockchain**: Ethereum, ERC-20 (MOC), viem
+- **AI**: Claude API, OpenAI GPT-4 (하이브리드)
+- **DevOps**: pm2, nginx
 - **Monorepo**: pnpm + Turborepo
 
 ## 성공 기준 (2026 H1)
