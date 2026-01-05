@@ -37,14 +37,14 @@ export function useWebSocketToast() {
 
     // 이슈 탐지 알림
     const unsubIssues = onIssuesDetected((data) => {
-      if (data.count > 0) {
+      if (data.newCount > 0) {
         const severity = data.issues[0]?.severity || "medium";
         const toastType = severity === "critical" ? "error" : severity === "high" ? "warning" : "info";
 
         if (toastType === "error") {
           toast.error(
             t("issuesDetected.title"),
-            t("issuesDetected.message", { count: data.count }),
+            t("issuesDetected.message", { count: data.newCount }),
             {
               category: "issue",
               duration: 6000,
@@ -53,7 +53,7 @@ export function useWebSocketToast() {
         } else if (toastType === "warning") {
           toast.warning(
             t("issuesDetected.title"),
-            t("issuesDetected.message", { count: data.count }),
+            t("issuesDetected.message", { count: data.newCount }),
             {
               category: "issue",
               duration: 5000,
@@ -62,7 +62,7 @@ export function useWebSocketToast() {
         } else {
           toast.info(
             t("issuesDetected.title"),
-            t("issuesDetected.message", { count: data.count }),
+            t("issuesDetected.message", { count: data.newCount }),
             {
               category: "issue",
               duration: 4000,
@@ -86,11 +86,12 @@ export function useWebSocketToast() {
 
     // 투표 알림
     const unsubProposalVoted = onProposalVoted((data) => {
+      const voter = data.vote?.voter || "Unknown";
       toast.info(
         t("proposalVoted.title"),
         t("proposalVoted.message", {
-          voter: `${data.voter.slice(0, 6)}...${data.voter.slice(-4)}`,
-          vote: data.vote
+          voter: voter.length > 10 ? `${voter.slice(0, 6)}...${voter.slice(-4)}` : voter,
+          vote: data.vote?.choice || data.vote
         }),
         {
           category: "vote",

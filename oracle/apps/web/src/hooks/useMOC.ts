@@ -1,75 +1,37 @@
 "use client";
 
-import { useAccount, useReadContract, useReadContracts } from "wagmi";
-import { MOC_TOKEN_ADDRESS, MOC_TOKEN_ABI } from "@/lib/config";
+// Demo mode hooks - wallet functionality disabled
 
 export function useMOCBalance() {
-  const { address } = useAccount();
-
-  const { data, isLoading, error } = useReadContract({
-    address: MOC_TOKEN_ADDRESS,
-    abi: MOC_TOKEN_ABI,
-    functionName: "balanceOf",
-    args: address ? [address] : undefined,
-    query: {
-      enabled: !!address,
-    },
-  });
-
   return {
-    balance: data as bigint | undefined,
-    isLoading,
-    error,
+    balance: BigInt(1000000) * BigInt(10 ** 18), // Demo: 1M MOC
+    isLoading: false,
+    error: null,
   };
 }
 
 export function useMOCInfo() {
-  const { data, isLoading, error } = useReadContracts({
-    contracts: [
-      {
-        address: MOC_TOKEN_ADDRESS,
-        abi: MOC_TOKEN_ABI,
-        functionName: "name",
-      },
-      {
-        address: MOC_TOKEN_ADDRESS,
-        abi: MOC_TOKEN_ABI,
-        functionName: "symbol",
-      },
-      {
-        address: MOC_TOKEN_ADDRESS,
-        abi: MOC_TOKEN_ABI,
-        functionName: "decimals",
-      },
-      {
-        address: MOC_TOKEN_ADDRESS,
-        abi: MOC_TOKEN_ABI,
-        functionName: "totalSupply",
-      },
-    ],
-  });
-
   return {
-    name: data?.[0]?.result as string | undefined,
-    symbol: data?.[1]?.result as string | undefined,
-    decimals: data?.[2]?.result as number | undefined,
-    totalSupply: data?.[3]?.result as bigint | undefined,
-    isLoading,
-    error,
+    name: "Mossland",
+    symbol: "MOC",
+    decimals: 18,
+    totalSupply: BigInt(500000000) * BigInt(10 ** 18),
+    isLoading: false,
+    error: null,
   };
 }
 
 export function useVotingPower() {
-  const { balance } = useMOCBalance();
-  const { decimals } = useMOCInfo();
-
-  if (!balance || !decimals) {
-    return { votingPower: 0n, formatted: "0" };
-  }
-
-  // Voting power = MOC balance (1 MOC = 1 vote)
   return {
-    votingPower: balance,
-    formatted: (Number(balance) / 10 ** decimals).toFixed(2),
+    votingPower: BigInt(1000000) * BigInt(10 ** 18),
+    formatted: "1,000,000",
+  };
+}
+
+// Demo account hook
+export function useAccount() {
+  return {
+    address: "0xDemo...User" as `0x${string}`,
+    isConnected: true,
   };
 }

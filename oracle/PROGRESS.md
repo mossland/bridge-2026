@@ -1,10 +1,12 @@
-# BRIDGE 2026 Oracle - 개발 진행 현황
+# BRIDGE Oracle - 개발 진행 현황
 
 > Physical AI Governance OS for MOC Token Holders
 
 ## 프로젝트 개요
 
-BRIDGE 2026은 Mossland의 MOC 토큰 홀더를 위한 Physical AI 거버넌스 운영체제입니다.
+BRIDGE는 Mossland의 MOC 토큰 홀더를 위한 Physical AI 거버넌스 운영체제입니다.
+
+🔗 **Live Demo**: [https://bridge.moss.land](https://bridge.moss.land)
 
 **핵심 플로우:** Reality Signals → Agents Deliberate → Humans Decide → Outcomes Proven
 
@@ -138,9 +140,7 @@ BRIDGE 2026은 Mossland의 MOC 토큰 홀더를 위한 Physical AI 거버넌스 
 ### 4. UI/UX 기능
 
 - [x] **다국어 지원** (i18n) - 한국어/영어
-- [x] **지갑 연동** - RainbowKit + wagmi
-- [x] MOC 토큰 잔액 표시
-- [x] 투표권 (Voting Power) 표시
+- [x] **데모 모드** - 지갑 연동 없이 체험 가능
 - [x] **심의 프로그레스 UI** - 단계별 진행상황 표시
 - [x] **Decision Packet 독립 스크롤**
 - [x] **제안서 상세 정보**
@@ -168,6 +168,15 @@ BRIDGE 2026은 Mossland의 MOC 토큰 홀더를 위한 Physical AI 거버넌스 
   - 반응형 그리드 레이아웃
   - 터치 친화적 버튼 크기
   - 모바일 우선 타이포그래피
+- [x] **헤더/푸터 개선**
+  - 헤더 로고 "BRIDGE"
+  - 푸터 컴포넌트 (MOSSLAND 브랜딩)
+  - 소셜 링크 (Website, Twitter, Medium, GitHub, Email)
+- [x] **대시보드 버그 수정**
+  - Signals/Issue Detection 값 0 표시 수정
+  - API 타입 정의 수정
+  - 신호 목록 기본 limit 500으로 증가
+  - CORS 설정 (bridge.moss.land 추가)
 
 ### 5. 데이터 지속성
 
@@ -189,11 +198,30 @@ BRIDGE 2026은 Mossland의 MOC 토큰 홀더를 위한 Physical AI 거버넌스 
 
 ---
 
+### 7. 서버 운영
+
+- [x] **pm2 프로세스 관리**
+  - ecosystem.config.cjs 설정 파일
+  - 자동 재시작 (autorestart)
+  - 로그 관리 (logs/)
+- [x] **포트 설정**
+  - Frontend: 3100
+  - Backend: 3101
+- [x] **nginx 프록시 호환**
+  - 상대 경로 API URL
+  - WebSocket 프록시 지원
+
+---
+
 ## 개발 히스토리
 
 | 커밋 | 작업 내용 |
 |------|----------|
-| (pending) | MOC 홀더 투표 검증 및 블록체인 연동 서비스 |
+| `ab14a8f` | 대시보드 통계 버그 수정 및 UI 개선 (헤더/푸터) |
+| `b0fc7c0` | pm2 서버 설정 및 데모 모드 문서 업데이트 |
+| `6195d45` | WalletConnect 제거 및 pm2 서버 설정 추가 |
+| `c6923d1` | 블록체인 연동 가이드 문서 추가 |
+| `14ea5e1` | MOC 홀더 투표 검증 및 블록체인 연동 서비스 |
 | `f00f544` | 에이전트 학습 시스템 및 피드백 루프 구현 |
 | `3d0850a` | 모바일 반응형 최적화 |
 | `eb726e1` | 토스트 알림 시스템 고도화 |
@@ -268,10 +296,11 @@ BRIDGE 2026은 Mossland의 MOC 토큰 홀더를 위한 Physical AI 거버넌스 
 
 | 영역 | 기술 |
 |------|------|
-| Frontend | Next.js 14, TailwindCSS, wagmi, RainbowKit, next-intl |
+| Frontend | Next.js 14, TailwindCSS, next-intl |
 | Backend | Express, TypeScript, SQLite (better-sqlite3) |
 | Blockchain | Ethereum, viem, Solidity |
 | AI/LLM | Anthropic Claude, OpenAI GPT-4 |
+| DevOps | pm2, nginx |
 | Testing | Jest, Supertest |
 
 ---
@@ -282,11 +311,18 @@ BRIDGE 2026은 Mossland의 MOC 토큰 홀더를 위한 Physical AI 거버넌스 
 # 의존성 설치
 cd oracle && pnpm install
 
-# API 서버 (port 4000)
-pnpm --filter @oracle/api dev
+# pm2로 서버 실행 (권장)
+pm2 start ecosystem.config.cjs
 
-# Web 프론트엔드 (port 4001)
-pnpm --filter @oracle/web dev
+# pm2 명령어
+pm2 status              # 상태 확인
+pm2 logs                # 로그 보기
+pm2 restart all         # 전체 재시작
+pm2 stop all            # 전체 중지
+
+# 개별 실행 (개발용)
+pnpm --filter @oracle/api dev   # API (port 3101)
+pnpm --filter @oracle/web dev   # Web (port 3100)
 
 # E2E 테스트 (API 서버 실행 필요)
 pnpm --filter @oracle/api test
@@ -301,7 +337,7 @@ pnpm build
 
 ```bash
 # API (.env)
-PORT=4000
+PORT=3101
 ETHERSCAN_API_KEY=...
 GITHUB_TOKEN=...
 TWITTER_BEARER_TOKEN=...
@@ -320,8 +356,7 @@ ORACLE_PRIVATE_KEY=...       # 오라클 서명 계정 (0x 포함)
 CHAIN_ID=1                   # 1: mainnet, 11155111: sepolia, 31337: hardhat
 
 # Web (.env.local)
-NEXT_PUBLIC_API_URL=http://localhost:4000
-NEXT_PUBLIC_WALLET_CONNECT_ID=...
+NEXT_PUBLIC_API_URL=         # 비워두면 상대 경로 사용 (nginx 프록시용)
 ```
 
 ---
@@ -330,15 +365,16 @@ NEXT_PUBLIC_WALLET_CONNECT_ID=...
 
 | 파일 | 설명 |
 |------|------|
+| `ecosystem.config.cjs` | pm2 서버 설정 |
 | `apps/api/src/index.ts` | API 엔드포인트 |
 | `apps/api/src/db.ts` | SQLite 데이터베이스 |
 | `apps/api/src/learning.ts` | 에이전트 학습 서비스 |
 | `apps/api/src/blockchain.ts` | 블록체인 연동 서비스 |
 | `apps/web/src/app/*/page.tsx` | 각 페이지 UI |
 | `apps/web/src/lib/api.ts` | API 클라이언트 |
+| `apps/web/src/hooks/useMOC.ts` | 데모 모드 훅 |
 | `apps/web/src/components/Toast.tsx` | 토스트 알림 컴포넌트 |
 | `apps/web/src/contexts/ToastContext.tsx` | 토스트 전역 상태 관리 |
-| `apps/web/src/hooks/useWebSocketToast.ts` | WebSocket-토스트 연동 훅 |
 | `apps/web/messages/*.json` | i18n 번역 |
 | `packages/core/src/types/` | 공유 타입 정의 |
 | `packages/agentic-consensus/src/` | 에이전트 및 Moderator |

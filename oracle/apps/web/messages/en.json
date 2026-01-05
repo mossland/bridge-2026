@@ -67,7 +67,8 @@
       "high": "High",
       "medium": "Medium",
       "low": "Low"
-    }
+    },
+    "maxDisplayNote": "Showing up to {max} recent signals"
   },
   "issues": {
     "title": "Issue Detection",

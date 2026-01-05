@@ -3,7 +3,8 @@
 import { useEffect, useState, useCallback, useRef } from "react";
 import { io, Socket } from "socket.io-client";
 
-const SOCKET_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
+// 빈 문자열이면 현재 도메인 사용 (상대 경로)
+const SOCKET_URL = process.env.NEXT_PUBLIC_API_URL ?? "";
 
 export interface SocketStats {
   signals: number;

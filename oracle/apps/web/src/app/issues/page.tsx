@@ -3,8 +3,8 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useAccount } from "wagmi";
 import { useTranslations } from "next-intl";
+import { useAccount } from "@/hooks/useMOC";
 import { AlertTriangle, MessageSquare, Users, Shield, Coins, Code, ChevronRight, Bot, Loader2, RefreshCw, CheckCircle, Clock, MessageCircle } from "lucide-react";
 import { cn, timeAgo } from "@/lib/utils";
 import { useToast } from "@/contexts/ToastContext";

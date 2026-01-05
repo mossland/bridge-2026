@@ -1,18 +1,20 @@
-# BRIDGE 2026 — Physical AI Expansion
+# BRIDGE — Physical AI Expansion
 
 > **"Where agents propose, people decide, reality updates."**
 
-BRIDGE 2026은 **모스랜드(Mossland)** 의 차세대 거버넌스 프레임워크입니다. 현실 신호가 자동으로 의제화되고, AI 에이전트들이 토론/합의안을 만들며, MOC 홀더가 승인/위임으로 실행하는 **Reality Ops** 시스템입니다.
+BRIDGE는 **모스랜드(Mossland)** 의 차세대 거버넌스 프레임워크입니다. 현실 신호가 자동으로 의제화되고, AI 에이전트들이 토론/합의안을 만들며, MOC 홀더가 승인/위임으로 실행하는 **Reality Ops** 시스템입니다.
+
+🔗 **Live Demo**: [https://bridge.moss.land](https://bridge.moss.land)
 
 ## 핵심 비전
 
 **기존 DAO**: 사람이 제안 → 사람 토론 → 투표
 
-**BRIDGE 2026**: 현실 신호 → AI 의제화 → 에이전트 토론 → 사람 승인/위임 → 실행 → 결과증명
+**BRIDGE**: 현실 신호 → AI 의제화 → 에이전트 토론 → 사람 승인/위임 → 실행 → 결과증명
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────┐
-│                    BRIDGE 2026 Governance Loop                          │
+│                      BRIDGE Governance Loop                             │
 ├─────────────────────────────────────────────────────────────────────────┤
 │                                                                         │
 │   Reality         Inference        Agentic          Human               │
@@ -48,14 +50,21 @@ MOC 홀더의 3가지 역할:
 # 의존성 설치
 pnpm install
 
-# 전체 빌드
-pnpm build
+# pm2로 서버 실행 (권장)
+pm2 start ecosystem.config.cjs
 
-# 웹 개발 서버
-pnpm --filter @oracle/web dev
+# 접속
+# Frontend: http://localhost:3100
+# Backend:  http://localhost:3101
 
-# API 서버
-pnpm --filter @oracle/api dev
+# pm2 명령어
+pm2 status              # 상태 확인
+pm2 logs                # 로그 보기
+pm2 restart all         # 전체 재시작
+
+# 개별 실행 (개발용)
+pnpm --filter @oracle/api dev   # API (port 3101)
+pnpm --filter @oracle/web dev   # Web (port 3100)
 ```
 
 ## 2026 H1 MVP 범위
@@ -154,10 +163,11 @@ oracle/
 
 ## 기술 스택
 
-- **Frontend**: Next.js 14, TailwindCSS, wagmi, viem
-- **Backend**: Node.js, Express, TypeScript
-- **Blockchain**: Ethereum, ERC-20 (MOC)
-- **AI**: Claude API (하이브리드)
+- **Frontend**: Next.js 14, TailwindCSS, next-intl
+- **Backend**: Node.js, Express, TypeScript, SQLite
+- **Blockchain**: Ethereum, ERC-20 (MOC), viem
+- **AI**: Claude API, OpenAI GPT-4 (하이브리드)
+- **DevOps**: pm2, nginx
 - **Monorepo**: pnpm + Turborepo
 
 ## 성공 기준 (2026 H1)
@@ -188,6 +198,20 @@ oracle/
 <img width="1111" height="968" alt="6" src="https://github.com/user-attachments/assets/8f99d790-a64f-442b-af72-17271d7551bb" />
 
 
+## 링크
+
+| 채널 | URL |
+|------|-----|
+| Website | [https://moss.land](https://moss.land) |
+| Twitter | [https://x.com/TheMossland](https://x.com/TheMossland) |
+| Medium | [https://medium.com/mossland-blog](https://medium.com/mossland-blog) |
+| GitHub | [https://github.com/mossland](https://github.com/mossland) |
+| Contact | contact@moss.land |
+
 ## 라이선스
 
 Business Source License (BUSL 1.1)
+
+---
+
+© 2025, 2026 MOSSLAND. ALL RIGHTS RESERVED.

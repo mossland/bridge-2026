@@ -67,7 +67,8 @@
       "high": "높음",
       "medium": "보통",
       "low": "낮음"
-    }
+    },
+    "maxDisplayNote": "최근 {max}개의 신호만 표시됩니다"
   },
   "issues": {
     "title": "이슈 탐지",

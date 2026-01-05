@@ -15,7 +15,7 @@ const inter = Inter({ subsets: ["latin"] });
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
-  title: "BRIDGE 2026 - Physical AI Governance",
+  title: "BRIDGE - Physical AI Governance",
   description: "Where agents propose, people decide, reality updates.",
 };
 

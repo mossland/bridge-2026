@@ -4,7 +4,6 @@ import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useTranslations } from "next-intl";
-import { ConnectButton } from "@rainbow-me/rainbowkit";
 import { cn } from "@/lib/utils";
 import { LanguageSwitcher } from "./LanguageSwitcher";
 import { RealtimeIndicator } from "./RealtimeIndicator";
@@ -51,7 +50,7 @@ export function Header() {
               <div className="w-8 h-8 bg-moss-600 rounded-lg flex items-center justify-center">
                 <span className="text-white font-bold text-lg">B</span>
               </div>
-              <span className="font-bold text-xl text-gray-900 hidden sm:block">BRIDGE 2026</span>
+              <span className="font-bold text-xl text-gray-900 hidden sm:block">BRIDGE</span>
             </Link>
           </div>
 
@@ -78,20 +77,12 @@ export function Header() {
             })}
           </nav>
 
-          {/* Realtime, Language & Wallet */}
+          {/* Realtime & Language */}
           <div className="flex items-center space-x-2 sm:space-x-3">
             <RealtimeIndicator />
             <div className="hidden sm:block">
               <LanguageSwitcher />
             </div>
-            <ConnectButton
-              showBalance={false}
-              chainStatus="icon"
-              accountStatus={{
-                smallScreen: "avatar",
-                largeScreen: "full",
-              }}
-            />
           </div>
         </div>
       </div>

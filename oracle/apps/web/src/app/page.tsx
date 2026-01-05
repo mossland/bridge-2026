@@ -1,10 +1,7 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { useAccount } from "wagmi";
 import { useTranslations } from "next-intl";
-import { useMOCBalance, useMOCInfo, useVotingPower } from "@/hooks/useMOC";
-import { formatMOC } from "@/lib/utils";
 import { api } from "@/lib/api";
 import {
   Activity,
@@ -13,7 +10,7 @@ import {
   CheckCircle,
   TrendingUp,
   Users,
-  Wallet,
+  Zap,
 } from "lucide-react";
 import Link from "next/link";
 
@@ -56,52 +53,20 @@ function StatCard({
   return content;
 }
 
-function WalletInfo() {
+function WelcomeBanner() {
   const t = useTranslations();
-  const { isConnected } = useAccount();
-  const { balance, isLoading: balanceLoading } = useMOCBalance();
-  const { decimals } = useMOCInfo();
-  const { formatted: votingPower } = useVotingPower();
-
-  if (!isConnected) {
-    return (
-      <div className="card bg-gradient-to-r from-moss-600 to-moss-700 text-white">
-        <div className="flex items-center space-x-4">
-          <div className="p-3 bg-white/20 rounded-lg">
-            <Wallet className="w-8 h-8" />
-          </div>
-          <div>
-            <h3 className="text-lg font-semibold">{t("header.connectWallet")}</h3>
-            <p className="text-moss-100">
-              {t("common.tagline")}
-            </p>
-          </div>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="card bg-gradient-to-r from-moss-600 to-moss-700 text-white">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div className="flex items-center space-x-4">
-          <div className="p-3 bg-white/20 rounded-lg flex-shrink-0">
-            <Wallet className="w-8 h-8" />
-          </div>
-          <div>
-            <h3 className="text-lg font-semibold">My Voting Power</h3>
-            <p className="text-2xl font-bold mt-1">
-              {balanceLoading
-                ? t("common.loading")
-                : balance && decimals
-                  ? formatMOC(balance, decimals)
-                  : "0 MOC"}
-            </p>
-          </div>
+      <div className="flex items-center space-x-4">
+        <div className="p-3 bg-white/20 rounded-lg">
+          <Zap className="w-8 h-8" />
         </div>
-        <div className="text-left sm:text-right pl-14 sm:pl-0">
-          <p className="text-sm text-moss-100">{t("proposals.votes")}</p>
-          <p className="text-xl font-semibold">{votingPower} votes</p>
+        <div>
+          <h3 className="text-lg font-semibold">BRIDGE 2026</h3>
+          <p className="text-moss-100">
+            {t("common.tagline")}
+          </p>
         </div>
       </div>
     </div>
@@ -216,20 +181,20 @@ export default function Dashboard() {
         </p>
       </div>
 
-      {/* Wallet Info */}
-      <WalletInfo />
+      {/* Welcome Banner */}
+      <WelcomeBanner />
 
       {/* Stats Grid */}
       <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
         <StatCard
           title={t("dashboard.totalSignals")}
-          value={statsLoading ? "..." : stats?.signals.normalizedSignalCount ?? 0}
+          value={statsLoading ? "..." : stats?.signals.total ?? 0}
           icon={Activity}
           href="/signals"
         />
         <StatCard
           title={t("issues.title")}
-          value={statsLoading ? "..." : stats?.proposals.active ?? 0}
+          value={statsLoading ? "..." : stats?.issues.total ?? 0}
           icon={AlertTriangle}
           href="/issues"
         />

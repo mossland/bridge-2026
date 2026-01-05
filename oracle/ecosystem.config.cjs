@@ -1,0 +1,50 @@
+module.exports = {
+  apps: [
+    {
+      name: 'oracle-api',
+      cwd: './apps/api',
+      script: './node_modules/.bin/tsx',
+      args: 'watch src/index.ts',
+      interpreter: 'none',
+      env: {
+        PORT: 3101,
+        NODE_ENV: 'development',
+      },
+      env_production: {
+        PORT: 3101,
+        NODE_ENV: 'production',
+      },
+      watch: false,
+      autorestart: true,
+      max_restarts: 10,
+      restart_delay: 1000,
+      error_file: './logs/api-error.log',
+      out_file: './logs/api-out.log',
+      log_date_format: 'YYYY-MM-DD HH:mm:ss',
+      merge_logs: true,
+    },
+    {
+      name: 'oracle-web',
+      cwd: './apps/web',
+      script: './node_modules/.bin/next',
+      args: 'dev --port 3100',
+      interpreter: 'none',
+      env: {
+        NODE_ENV: 'development',
+        NEXT_PUBLIC_API_URL: '',
+      },
+      env_production: {
+        NODE_ENV: 'production',
+        NEXT_PUBLIC_API_URL: '',
+      },
+      watch: false,
+      autorestart: true,
+      max_restarts: 10,
+      restart_delay: 1000,
+      error_file: './logs/web-error.log',
+      out_file: './logs/web-out.log',
+      log_date_format: 'YYYY-MM-DD HH:mm:ss',
+      merge_logs: true,
+    },
+  ],
+};
