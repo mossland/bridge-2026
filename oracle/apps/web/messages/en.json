@@ -208,7 +208,39 @@
   },
   "footer": {
     "poweredBy": "Powered by BRIDGE 2026",
-    "mossland": "Mossland"
+    "mossland": "Mossland",
+    "experimental": "Experimental / Research / Non-Production"
+  },
+  "experimental": {
+    "banner": {
+      "title": "⚠️ Experimental / Research / Non-Production",
+      "subtitle": "This service is an experimental environment for research, testing, and PoC purposes. Data loss and service interruptions may occur.",
+      "dismiss": "Dismiss"
+    },
+    "modal": {
+      "title": "Experimental Environment Notice",
+      "intro": "This service is an experimental environment for research, testing, and PoC purposes. Please review the following before use.",
+      "warnings": {
+        "service": {
+          "title": "Service Interruptions & Errors",
+          "description": "Service interruptions, resets, and errors may occur frequently. Access may become unavailable without notice."
+        },
+        "data": {
+          "title": "Data Loss Risk",
+          "description": "Posts, discussions, proposals, and voting data may be modified or deleted without notice. Please backup important data separately."
+        },
+        "governance": {
+          "title": "No Legal Effect of DAO Decisions",
+          "description": "DAO participation has no legal or practical effect on actual governance or decision-making. Voting on this site is for experimental purposes only."
+        },
+        "decisions": {
+          "title": "Unofficial Decisions",
+          "description": "No results from this site constitute official, final, or executable decisions. All decisions are for research and testing purposes."
+        }
+      },
+      "footer": "Please use this service only if you understand and agree to the above terms.",
+      "accept": "I Understand"
+    }
   },
   "errors": {
     "fetchFailed": "Failed to fetch data",

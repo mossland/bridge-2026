@@ -208,7 +208,39 @@
   },
   "footer": {
     "poweredBy": "Powered by BRIDGE 2026",
-    "mossland": "Mossland"
+    "mossland": "Mossland",
+    "experimental": "실험 환경 / 연구용 / 비프로덕션"
+  },
+  "experimental": {
+    "banner": {
+      "title": "⚠️ 실험 환경 / 연구용 / 비프로덕션",
+      "subtitle": "본 서비스는 연구·테스트·PoC 목적의 실험 환경입니다. 데이터 유실 및 서비스 중단이 발생할 수 있습니다.",
+      "dismiss": "닫기"
+    },
+    "modal": {
+      "title": "실험 환경 안내",
+      "intro": "본 서비스는 연구·테스트·PoC 목적의 실험 환경입니다. 사용 전 다음 사항을 반드시 확인해주세요.",
+      "warnings": {
+        "service": {
+          "title": "서비스 중단 및 오류",
+          "description": "서비스 중단, 리셋, 오류가 수시로 발생할 수 있습니다. 예고 없이 접근이 불가능해질 수 있습니다."
+        },
+        "data": {
+          "title": "데이터 유실 가능성",
+          "description": "게시글, 토론, 제안, 투표 데이터는 예고 없이 수정·삭제될 수 있습니다. 중요한 데이터는 별도로 백업하시기 바랍니다."
+        },
+        "governance": {
+          "title": "DAO 결정의 비효력",
+          "description": "DAO 참여는 실제 거버넌스나 의사결정에 법적·실질적 효력이 없습니다. 본 사이트의 투표는 실험 목적입니다."
+        },
+        "decisions": {
+          "title": "비공식 결정",
+          "description": "본 사이트의 어떠한 결과도 공식·확정·집행 가능한 결정이 아닙니다. 모든 결정은 연구 및 테스트 목적입니다."
+        }
+      },
+      "footer": "위 사항을 이해하고 동의하신 경우에만 사용해주세요.",
+      "accept": "이해했습니다"
+    }
   },
   "errors": {
     "fetchFailed": "데이터를 불러오지 못했습니다",
